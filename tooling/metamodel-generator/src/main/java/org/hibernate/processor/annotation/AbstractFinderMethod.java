@@ -1,20 +1,15 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.annotation;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.hibernate.internal.util.StringHelper;
 
 import javax.lang.model.element.ExecutableElement;
 import java.util.List;
-import java.util.Locale;
 
 import static org.hibernate.processor.util.Constants.HIB_SESSION;
-import static org.hibernate.processor.util.StringUtil.getUpperUnderscoreCaseFromLowerCamelCase;
 
 /**
  * @author Gavin King
@@ -72,27 +67,7 @@ public abstract class AbstractFinderMethod extends AbstractQueryMethod  {
 
 	@Override
 	public String getAttributeNameDeclarationString() {
-		return new StringBuilder()
-				.append("public static final String ")
-				.append(constantName())
-				.append(" = \"!")
-				.append(annotationMetaEntity.getQualifiedName())
-				.append('.')
-				.append(methodName)
-				.append("(")
-				.append(parameterList())
-				.append(")")
-				.append("\";")
-				.toString();
-	}
-
-	String constantName() {
-		return getUpperUnderscoreCaseFromLowerCamelCase(methodName) + "_BY_"
-				+ paramNames.stream()
-				.map(StringHelper::unqualify)
-				.map(name -> name.toUpperCase(Locale.ROOT))
-				.reduce((x,y) -> x + "_AND_" + y)
-				.orElse("");
+		throw new UnsupportedOperationException("operation not supported");
 	}
 
 	void comment(StringBuilder declaration) {
@@ -189,20 +164,6 @@ public abstract class AbstractFinderMethod extends AbstractQueryMethod  {
 				.append("\treturn ")
 				.append(sessionName);
 	}
-
-//	private void returnType(StringBuilder declaration) {
-//		if ( isReactive() ) {
-//			declaration
-//					.append(annotationMetaEntity.importType(UNI))
-//					.append('<');
-//		}
-//		declaration
-//				.append(annotationMetaEntity.importType(entity));
-//		if ( isReactive() ) {
-//			declaration
-//					.append('>');
-//		}
-//	}
 
 	void modifiers(StringBuilder declaration) {
 		declaration

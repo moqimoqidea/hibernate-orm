@@ -51,6 +51,7 @@ GitHub there are a few pre-requisite steps to follow:
 the linked page, this also includes:
     * [set up your local git install](https://help.github.com/articles/set-up-git) 
     * clone your fork
+* Instruct git to ignore certain commits when using `git blame`. From the directory of your local clone, run this: `git config blame.ignoreRevsFile .git-blame-ignore-revs`
 * See the wiki pages for setting up your IDE, whether you use 
 [IntelliJ IDEA](https://hibernate.org/community/contribute/intellij-idea/)
 or [Eclipse](https://hibernate.org/community/contribute/eclipse-ide/)<sup>(1)</sup>.
@@ -82,7 +83,6 @@ Do your thing!
 up the related commits and display them on the JIRA issue
 * Make sure you have added the necessary tests for your changes
 * Run _all_ the tests to ensure nothing else was accidentally broken
-* Make sure your source does not violate the _checkstyles_
 
 _Before committing, if you want to pull in the latest upstream changes (highly
 appreciated btw), please use rebasing rather than merging.  Merging creates

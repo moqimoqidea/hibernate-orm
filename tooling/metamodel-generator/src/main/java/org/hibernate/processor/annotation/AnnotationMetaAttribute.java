@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.annotation;
 
@@ -46,35 +44,40 @@ public abstract class AnnotationMetaAttribute implements MetaAttribute {
 	@Override
 	public String getAttributeDeclarationString() {
 		return new StringBuilder()
-				.append("\n/**\n * @see ")
-				.append( parent.getQualifiedName() )
-				.append( "#")
-				.append( element.getSimpleName() )
-				.append( "\n **/\n" )
-				.append( "public static volatile " )
-				.append( parent.importType( getMetaType() ) )
-				.append( "<" )
-				.append( parent.importType( parent.getQualifiedName() ) )
-				.append( ", " )
-				.append( parent.importType( getTypeDeclaration() ) )
-				.append( "> " )
-				.append( getPropertyName() )
-				.append( ";" )
+				.append("\n/**\n * Static metamodel for attribute {@link ")
+				.append(parent.getQualifiedName())
+				.append('#')
+				.append(element.getSimpleName())
+				.append("}\n **/\n")
+				.append("public static volatile ")
+				.append(parent.importType(getMetaType()))
+				.append('<')
+				.append(parent.importType(parent.getQualifiedName()))
+				.append(", ")
+				.append(parent.importType(getTypeDeclaration()))
+				.append('>')
+				.append(' ')
+				.append(getPropertyName())
+				.append(';')
 				.toString();
 	}
 
 	@Override
 	public String getAttributeNameDeclarationString(){
 		return new StringBuilder()
+				.append("\n/**\n * @see ")
+				.append("#")
+				.append(getPropertyName())
+				.append( "\n **/\n" )
 				.append("public static final ")
 				.append(parent.importType(String.class.getName()))
-				.append(" ")
+				.append(' ')
 				.append(getUpperUnderscoreCaseFromLowerCamelCase(getPropertyName()))
 				.append(" = ")
-				.append("\"")
+				.append('"')
 				.append(getPropertyName())
-				.append("\"")
-				.append(";")
+				.append('"')
+				.append(';')
 				.toString();
 	}
 

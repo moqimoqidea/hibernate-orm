@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.test.data.basic;
 
@@ -19,7 +17,7 @@ import static org.hibernate.processor.test.util.TestUtil.getMetaModelSourceAsStr
  */
 public class DataTest extends CompilationTest {
 	@Test
-	@WithClasses({ Author.class, Book.class, BookAuthorRepository.class, IdOperations.class, Concrete.class })
+	@WithClasses({ Author.class, Book.class, BookAuthorRepository.class, IdOperations.class, Concrete.class, Thing.class })
 	public void test() {
 		System.out.println( getMetaModelSourceAsString( Author.class ) );
 		System.out.println( getMetaModelSourceAsString( Book.class ) );

@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.model.internal;
 
@@ -609,6 +607,7 @@ public class ToOneBinder {
 				else if ( foreignKey != null ) {
 					value.setForeignKeyName( nullIfEmpty( foreignKey.name() ) );
 					value.setForeignKeyDefinition( nullIfEmpty( foreignKey.foreignKeyDefinition() ) );
+					value.setForeignKeyOptions( foreignKey.options() );
 				}
 				else if ( noConstraintByDefault ) {
 					value.disableForeignKey();
@@ -617,11 +616,13 @@ public class ToOneBinder {
 					final ForeignKey joinColumnsForeignKey = joinColumns.foreignKey();
 					value.setForeignKeyName( nullIfEmpty( joinColumnsForeignKey.name() ) );
 					value.setForeignKeyDefinition( nullIfEmpty( joinColumnsForeignKey.foreignKeyDefinition() ) );
+					value.setForeignKeyOptions( joinColumnsForeignKey.options() );
 				}
 				else if ( joinColumn != null ) {
 					final ForeignKey joinColumnForeignKey = joinColumn.foreignKey();
 					value.setForeignKeyName( nullIfEmpty( joinColumnForeignKey.name() ) );
 					value.setForeignKeyDefinition( nullIfEmpty( joinColumnForeignKey.foreignKeyDefinition() ) );
+					value.setForeignKeyOptions( joinColumnForeignKey.options() );
 				}
 			}
 		}

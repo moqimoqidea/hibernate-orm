@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.mapping;
 
@@ -14,7 +12,6 @@ import org.hibernate.boot.spi.MetadataBuildingContext;
 import org.hibernate.engine.OptimisticLockStyle;
 import org.hibernate.internal.FilterConfiguration;
 import org.hibernate.internal.util.collections.JoinedList;
-import org.hibernate.persister.entity.EntityPersister;
 
 /**
  * A mapping model object that represents a subclass in an entity class
@@ -25,7 +22,6 @@ import org.hibernate.persister.entity.EntityPersister;
 public class Subclass extends PersistentClass {
 
 	private PersistentClass superclass;
-	private Class<? extends EntityPersister> classPersisterClass;
 	private final int subclassId;
 
 	public Subclass(PersistentClass superclass, MetadataBuildingContext buildingContext) {

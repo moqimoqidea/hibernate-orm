@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.util;
 
@@ -131,6 +129,8 @@ public final class Constants {
 	public static final String STREAM = "java.util.stream.Stream";
 
 	public static final String NULLABLE = "jakarta.annotation.Nullable";
+	public static final String NONNULL = "jakarta.annotation.Nonnull";
+	public static final String NOT_NULL = "jakarta.validation.constraints.NotNull";
 
 	public static final String PANACHE_ORM_REPOSITORY_BASE = "io.quarkus.hibernate.orm.panache.PanacheRepositoryBase";
 	public static final String PANACHE_ORM_ENTITY_BASE = "io.quarkus.hibernate.orm.panache.PanacheEntityBase";

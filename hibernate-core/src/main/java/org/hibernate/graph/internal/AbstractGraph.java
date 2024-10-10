@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.graph.internal;
 
@@ -114,12 +112,9 @@ public abstract class AbstractGraph<J> extends AbstractGraphNode<J> implements G
 
 	@Override
 	public void visitAttributeNodes(Consumer<AttributeNodeImplementor<?>> consumer) {
-		if ( attrNodeMap == null ) {
-			return;
+		if ( attrNodeMap != null ) {
+			attrNodeMap.forEach( (attribute, nodeImplementor) -> consumer.accept( nodeImplementor ) );
 		}
-		attrNodeMap.forEach( (persistentAttribute, attributeNodeImplementor) -> {
-			consumer.accept( attributeNodeImplementor );
-		} );
 	}
 
 	@Override
@@ -127,9 +122,11 @@ public abstract class AbstractGraph<J> extends AbstractGraphNode<J> implements G
 		if ( attrNodeMap == null ) {
 			return emptyList();
 		}
-		final List<AttributeNode<?>> result = new ArrayList<>();
-		visitAttributeNodes( result::add );
-		return result;
+		else {
+			final List<AttributeNode<?>> result = new ArrayList<>();
+			visitAttributeNodes( result::add );
+			return result;
+		}
 	}
 
 	@Override
@@ -211,8 +208,8 @@ public abstract class AbstractGraph<J> extends AbstractGraphNode<J> implements G
 		}
 	}
 
-	@Override
-	public void addAttributeNodes(Attribute<? super J, ?>... attributes) {
+	@Override @SafeVarargs
+	public final void addAttributeNodes(Attribute<? super J, ?>... attributes) {
 		for ( int i = 0; i < attributes.length; i++ ) {
 			addAttributeNode( attributes[i] );
 		}

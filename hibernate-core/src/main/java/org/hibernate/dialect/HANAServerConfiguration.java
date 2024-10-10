@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.dialect;
 
@@ -20,7 +18,7 @@ import org.hibernate.internal.util.config.ConfigurationHelper;
 import static org.hibernate.cfg.DialectSpecificSettings.HANA_MAX_LOB_PREFETCH_SIZE;
 
 /**
- * Utility class that extract some initial configuration from the database for {@link HANADialect}.
+ * Utility class that extracts some initial configuration from the database for {@link HANADialect}.
  */
 public class HANAServerConfiguration {
 

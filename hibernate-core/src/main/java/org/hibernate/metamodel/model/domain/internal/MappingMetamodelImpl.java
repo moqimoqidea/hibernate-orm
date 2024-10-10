@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.metamodel.model.domain.internal;
 
@@ -47,15 +45,16 @@ import org.hibernate.metamodel.mapping.EntityMappingType;
 import org.hibernate.metamodel.mapping.MappingModelExpressible;
 import org.hibernate.metamodel.mapping.internal.MappingModelCreationProcess;
 import org.hibernate.metamodel.model.domain.BasicDomainType;
+import org.hibernate.metamodel.model.domain.DomainType;
 import org.hibernate.metamodel.model.domain.EmbeddableDomainType;
 import org.hibernate.metamodel.model.domain.EntityDomainType;
+import org.hibernate.metamodel.model.domain.JpaMetamodel;
 import org.hibernate.metamodel.model.domain.ManagedDomainType;
 import org.hibernate.metamodel.model.domain.NavigableRole;
 import org.hibernate.metamodel.model.domain.TupleType;
 import org.hibernate.metamodel.model.domain.spi.JpaMetamodelImplementor;
 import org.hibernate.metamodel.spi.EntityRepresentationStrategy;
 import org.hibernate.metamodel.spi.MappingMetamodelImplementor;
-import org.hibernate.metamodel.spi.MetamodelImplementor;
 import org.hibernate.metamodel.spi.RuntimeModelCreationContext;
 import org.hibernate.persister.collection.CollectionPersister;
 import org.hibernate.persister.entity.EntityPersister;
@@ -80,10 +79,11 @@ import jakarta.persistence.EntityGraph;
 import jakarta.persistence.metamodel.EmbeddableType;
 import jakarta.persistence.metamodel.EntityType;
 import jakarta.persistence.metamodel.ManagedType;
+import jakarta.persistence.metamodel.Metamodel;
 
 import static org.hibernate.internal.util.collections.ArrayHelper.EMPTY_STRING_ARRAY;
-import static org.hibernate.metamodel.internal.JpaMetaModelPopulationSetting.determineJpaMetaModelPopulationSetting;
-import static org.hibernate.metamodel.internal.JpaStaticMetaModelPopulationSetting.determineJpaStaticMetaModelPopulationSetting;
+import static org.hibernate.metamodel.internal.JpaMetamodelPopulationSetting.determineJpaMetaModelPopulationSetting;
+import static org.hibernate.metamodel.internal.JpaStaticMetamodelPopulationSetting.determineJpaStaticMetaModelPopulationSetting;
 
 /**
  * Implementation of the JPA-defined contract {@link jakarta.persistence.metamodel.Metamodel}.
@@ -96,7 +96,7 @@ import static org.hibernate.metamodel.internal.JpaStaticMetaModelPopulationSetti
  * @author Andrea Boriero
  */
 public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
-		implements MappingMetamodelImplementor, MetamodelImplementor, Serializable {
+		implements MappingMetamodelImplementor,JpaMetamodel, Metamodel, Serializable {
 	// todo : Integrate EntityManagerLogger into CoreMessageLogger
 	private static final CoreMessageLogger log = CoreLogging.messageLogger( MappingMetamodelImpl.class );
 
@@ -348,11 +348,6 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 		representationStrategy.visitEntityNameResolvers( entityNameResolvers::add );
 	}
 
-	@Override @SuppressWarnings("deprecation")
-	public java.util.Collection<EntityNameResolver> getEntityNameResolvers() {
-		return entityNameResolvers;
-	}
-
 	@Override
 	public TypeConfiguration getTypeConfiguration() {
 		return jpaMetamodel.getTypeConfiguration();
@@ -363,7 +358,6 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 		return this;
 	}
 
-	@Override
 	public ServiceRegistry getServiceRegistry() {
 		return jpaMetamodel.getServiceRegistry();
 	}
@@ -547,7 +541,6 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 		return jpaMetamodel.enumValue( enumType, enumValueName );
 	}
 
-	@Override
 	public String[] getImplementors(String className) throws MappingException {
 		// computeIfAbsent() can be a contention point and we expect all the values to be in the map at some point so
 		// let's do an optimistic check first
@@ -574,38 +567,7 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 		}
 	}
 
-	@Override @SuppressWarnings("deprecation")
-	public Map<String, EntityPersister> entityPersisters() {
-		return entityPersisterMap.convertToMap();
-	}
 
-	@Override @SuppressWarnings("deprecation")
-	public CollectionPersister collectionPersister(String role) {
-		final CollectionPersister persister = collectionPersisterMap.get( role );
-		if ( persister == null ) {
-			throw new MappingException( "Could not locate CollectionPersister for role : " + role );
-		}
-		return persister;
-	}
-
-	@Override @SuppressWarnings("deprecation")
-	public Map<String, CollectionPersister> collectionPersisters() {
-		return collectionPersisterMap;
-	}
-
-	@Override @SuppressWarnings("deprecation")
-	public EntityPersister entityPersister(Class<?> entityClass) {
-		return getEntityDescriptor( entityClass.getName() );
-	}
-
-	@Override @SuppressWarnings("deprecation")
-	public EntityPersister entityPersister(String entityName) throws MappingException {
-		final EntityPersister result = entityPersisterMap.get( entityName );
-		if ( result == null ) {
-			throw new MappingException( "Unknown entity: " + entityName );
-		}
-		return result;
-	}
 
 	@Override
 	public EntityPersister locateEntityPersister(String byName) {
@@ -654,21 +616,6 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 	@Override
 	public CollectionPersister findCollectionDescriptor(String role) {
 		return collectionPersisterMap.get( role );
-	}
-
-	@Override @SuppressWarnings("deprecation")
-	public Set<String> getCollectionRolesByEntityParticipant(String entityName) {
-		return collectionRolesByEntityParticipant.get( entityName );
-	}
-
-	@Override
-	public String[] getAllEntityNames() {
-		return entityPersisterMap.keys();
-	}
-
-	@Override
-	public String[] getAllCollectionRoles() {
-		return ArrayHelper.toStringArray( collectionPersisterMap.keySet() );
 	}
 
 	@Override
@@ -743,18 +690,18 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 
 	private String[] doGetImplementors(Class<?> clazz) throws MappingException {
 		final ArrayList<String> results = new ArrayList<>();
-		for ( EntityPersister checkPersister : entityPersisters().values() ) {
-			final String checkQueryableEntityName = ((EntityMappingType) checkPersister).getEntityName();
+		forEachEntityDescriptor( descriptor -> {
+			final String checkQueryableEntityName = ((EntityMappingType) descriptor).getEntityName();
 			final boolean isMappedClass = clazz.getName().equals( checkQueryableEntityName );
 			if ( isMappedClass ) {
 				results.add( checkQueryableEntityName );
 			}
 			else {
-				final Class<?> mappedClass = checkPersister.getMappedClass();
+				final Class<?> mappedClass = descriptor.getMappedClass();
 				if ( mappedClass != null && clazz.isAssignableFrom( mappedClass ) ) {
 					final boolean assignableSuperclass;
-					if ( checkPersister.isInherited() ) {
-						final String superTypeName = checkPersister.getSuperMappingType().getEntityName();
+					if ( descriptor.isInherited() ) {
+						final String superTypeName = descriptor.getSuperMappingType().getEntityName();
 						final Class<?> mappedSuperclass = getEntityDescriptor( superTypeName ).getMappedClass();
 						assignableSuperclass = clazz.isAssignableFrom( mappedSuperclass );
 					}
@@ -766,8 +713,7 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 					}
 				}
 			}
-		}
-
+		} );
 		return results.toArray( EMPTY_STRING_ARRAY );
 	}
 
@@ -776,6 +722,10 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 			SqmExpressible<?> sqmExpressible,
 			Function<NavigablePath, TableGroup> tableGroupLocator) {
 		if ( sqmExpressible instanceof SqmPath<?> sqmPath ) {
+			final DomainType<?> sqmPathType = sqmPath.getResolvedModel().getSqmPathType();
+			if ( sqmPathType instanceof MappingModelExpressible<?> mappingExpressible ) {
+				return mappingExpressible;
+			}
 			final NavigablePath navigablePath = sqmPath.getNavigablePath();
 			if ( navigablePath.getParent() != null ) {
 				final TableGroup parentTableGroup = tableGroupLocator.apply( navigablePath.getParent() );
@@ -873,5 +823,31 @@ public class MappingMetamodelImpl extends QueryParameterBindingTypeResolverImpl
 		}
 
 		return null;
+	}
+
+	@Override
+	public Set<String> getCollectionRolesByEntityParticipant(String entityName) {
+		return collectionRolesByEntityParticipant.get( entityName );
+
+	}
+
+	@Override
+	public java.util.Collection<EntityNameResolver> getEntityNameResolvers() {
+		return entityNameResolvers;
+	}
+
+	@Override
+	public String[] getAllEntityNames() {
+		return entityPersisterMap.keys();
+	}
+
+	@Override
+	public String[] getAllCollectionRoles() {
+		return ArrayHelper.toStringArray( collectionPersisterMap.keySet() );
+	}
+
+	@Override
+	public void close() {
+		// anything to do ?
 	}
 }

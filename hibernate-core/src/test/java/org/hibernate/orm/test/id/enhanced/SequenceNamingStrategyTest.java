@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.orm.test.id.enhanced;
 
@@ -29,6 +27,7 @@ import org.hibernate.id.enhanced.SequenceStyleGenerator;
 import org.hibernate.id.enhanced.StandardNamingStrategy;
 import org.hibernate.mapping.KeyValue;
 import org.hibernate.mapping.PersistentClass;
+import org.hibernate.orm.test.idgen.n_ative.GeneratorSettingsImpl;
 import org.hibernate.service.ServiceRegistry;
 
 import org.hibernate.testing.orm.junit.BaseUnitTest;
@@ -131,7 +130,7 @@ public class SequenceNamingStrategyTest {
 			assertThat( sequence ).isNotNull();
 
 			final PersistentClass entityBinding = metadata.getEntityBinding( entityType.getName() );
-			final IdentifierGenerator generator = extractGenerator( entityBinding );
+			final IdentifierGenerator generator = extractGenerator( metadata, entityBinding );
 			assertThat( generator ).isInstanceOf( SequenceStyleGenerator.class );
 			final SequenceStyleGenerator sequenceStyleGenerator = (SequenceStyleGenerator) generator;
 			assertThat( sequenceStyleGenerator.getDatabaseStructure() ).isInstanceOf( SequenceStructure.class );
@@ -160,9 +159,14 @@ public class SequenceNamingStrategyTest {
 		}
 	}
 
-	private IdentifierGenerator extractGenerator(PersistentClass entityBinding) {
+	private IdentifierGenerator extractGenerator(MetadataImplementor metadataImplementor, PersistentClass entityBinding) {
 		KeyValue keyValue = entityBinding.getIdentifier();
-		final Generator generator = keyValue.createGenerator(null, null);
+		final Generator generator = keyValue.createGenerator(
+				metadataImplementor.getDatabase().getDialect(),
+				entityBinding.getRootClass(),
+				entityBinding.getIdentifierProperty(),
+				new GeneratorSettingsImpl( metadataImplementor )
+		);
 		return generator instanceof IdentifierGenerator ? (IdentifierGenerator) generator : null;
 	}
 

@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.engine.jdbc.env.internal;
 
@@ -218,7 +216,7 @@ public class JdbcEnvironmentInitiator implements StandardServiceInitiator<JdbcEn
 	 *
 	 * @see JdbcSettings#ALLOW_METADATA_ON_BOOT
 	 */
-	private static boolean allowJdbcMetadataAccess(Map<String, Object> configurationValues) {
+	public static boolean allowJdbcMetadataAccess(Map<String, Object> configurationValues) {
 		final Boolean allow = getBooleanWrapper( ALLOW_METADATA_ON_BOOT, configurationValues, null );
 		if ( allow != null ) {
 			return allow;

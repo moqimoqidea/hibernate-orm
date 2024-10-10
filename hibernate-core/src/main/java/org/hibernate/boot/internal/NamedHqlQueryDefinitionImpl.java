@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.internal;
 
@@ -44,7 +42,8 @@ public class NamedHqlQueryDefinitionImpl<E> extends AbstractNamedQueryDefinition
 			Integer fetchSize,
 			String comment,
 			Map<String,String> parameterTypes,
-			Map<String,Object> hints) {
+			Map<String,Object> hints,
+			String location) {
 		super(
 				name,
 				resultType,
@@ -57,7 +56,8 @@ public class NamedHqlQueryDefinitionImpl<E> extends AbstractNamedQueryDefinition
 				timeout,
 				fetchSize,
 				comment,
-				hints
+				hints,
+				location
 		);
 		this.hqlString = hqlString;
 		this.firstResult = firstResult;

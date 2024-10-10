@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.sql.results.graph.instantiation.internal;
 
@@ -57,12 +55,20 @@ public class InstantiationHelper {
 	}
 
 	public static boolean isConstructorCompatible(Class<?> javaClass, List<Class<?>> argTypes, TypeConfiguration typeConfiguration) {
-		for ( Constructor<?> constructor : javaClass.getDeclaredConstructors() ) {
-			if ( isConstructorCompatible( constructor, argTypes, typeConfiguration) ) {
-				return true;
+		return findMatchingConstructor( javaClass, argTypes, typeConfiguration ) != null;
+	}
+
+	public static <T> Constructor<T> findMatchingConstructor(
+			Class<T> type,
+			List<Class<?>> argumentTypes,
+			TypeConfiguration typeConfiguration) {
+		for ( final Constructor<?> constructor : type.getDeclaredConstructors() ) {
+			if ( isConstructorCompatible( constructor, argumentTypes, typeConfiguration ) ) {
+				//noinspection unchecked
+				return (Constructor<T>) constructor;
 			}
 		}
-		return false;
+		return null;
 	}
 
 	public static boolean isConstructorCompatible(

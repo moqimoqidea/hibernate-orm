@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.model.internal;
 
@@ -319,6 +317,7 @@ public class MapBinder extends CollectionBinder {
 			else {
 				element.setForeignKeyName( nullIfEmpty( foreignKey.name() ) );
 				element.setForeignKeyDefinition( nullIfEmpty( foreignKey.foreignKeyDefinition() ) );
+				element.setForeignKeyOptions( foreignKey.options() );
 			}
 		}
 	}
@@ -495,8 +494,7 @@ public class MapBinder extends CollectionBinder {
 
 	private SimpleValue createTargetValue(Table mapKeyTable, SimpleValue sourceValue) {
 		final SimpleValue targetValue;
-		if ( sourceValue instanceof ManyToOne ) {
-			final ManyToOne sourceManyToOne = (ManyToOne) sourceValue;
+		if ( sourceValue instanceof ManyToOne sourceManyToOne ) {
 			final ManyToOne targetManyToOne = new ManyToOne( getBuildingContext(), mapKeyTable);
 			targetManyToOne.setFetchMode( FetchMode.DEFAULT );
 			targetManyToOne.setLazy( true );

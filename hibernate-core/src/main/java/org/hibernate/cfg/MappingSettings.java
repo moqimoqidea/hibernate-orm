@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.cfg;
 
@@ -48,33 +46,38 @@ public interface MappingSettings {
 	/**
 	 * Setting that indicates whether to build the JPA types, either:<ul>
 	 *     <li>
-	 *         <b>enabled</b> - Do the build
+	 *         {@code enabled} &mdash; do the build
 	 *     </li>
 	 *     <li>
-	 *         <b>disabled</b> - Do not do the build
+	 *         {@code disabled} &mdash; do not do the build
 	 *     </li>
 	 *     <li>
-	 *         <b>ignoreUnsupported</b> - Do the build, but ignore any non-JPA
-	 *         features that would otherwise result in a failure.
+	 *         {@code ignoreUnsupported} &mdash; do the build, but ignore any
+	 *         non-JPA features that would otherwise result in a failure.
 	 *     </li>
 	 * </ul>
+	 *
+	 * @settingDefault {@code ignoreUnsupported}
 	 */
 	String JPA_METAMODEL_POPULATION = "hibernate.jpa.metamodel.population";
 
 	/**
-	 * Setting that controls whether we seek out JPA "static metamodel" classes
+	 * Setting that controls whether we seek out JPA static metamodel classes
 	 * and populate them, either:<ul>
 	 *     <li>
-	 *         <b>enabled</b> - Do the population
+	 *         {@code enabled} &mdash; do populate the static metamodel,
 	 *     </li>
 	 *     <li>
-	 *         <b>disabled</b> - Do not do the population
+	 *         {@code disabled} &mdash; do not populate the static metamodel, or
 	 *     </li>
 	 *     <li>
-	 *         <b>skipUnsupported</b> - Do the population, but ignore any non-JPA
-	 *         features that would otherwise result in the population failing.
+	 *         {@code skipUnsupported} &mdash; do populate the static metamodel,
+	 *         but ignore any non-JPA features that would otherwise result in
+	 *         the process failing.
 	 *     </li>
 	 * </ul>
+	 *
+	 * @settingDefault {@code skipUnsupported}
 	 */
 	String STATIC_METAMODEL_POPULATION = "hibernate.jpa.static_metamodel.population";
 

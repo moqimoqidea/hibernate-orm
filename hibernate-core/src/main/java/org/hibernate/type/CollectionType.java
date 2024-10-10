@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.type;
 
@@ -30,7 +28,6 @@ import org.hibernate.collection.spi.PersistentCollection;
 import org.hibernate.engine.spi.CollectionEntry;
 import org.hibernate.engine.spi.CollectionKey;
 import org.hibernate.engine.spi.EntityEntry;
-import org.hibernate.engine.spi.Mapping;
 import org.hibernate.engine.spi.PersistenceContext;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
@@ -162,12 +159,12 @@ public abstract class CollectionType extends AbstractType implements Association
 	}
 
 	@Override
-	public int[] getSqlTypeCodes(Mapping session) throws MappingException {
+	public int[] getSqlTypeCodes(MappingContext mappingContext) throws MappingException {
 		return ArrayHelper.EMPTY_INT_ARRAY;
 	}
 
 	@Override
-	public int getColumnSpan(Mapping session) throws MappingException {
+	public int getColumnSpan(MappingContext session) throws MappingException {
 		return 0;
 	}
 
@@ -517,13 +514,10 @@ public abstract class CollectionType extends AbstractType implements Association
 		// One thing to be careful of here is a "bare" original collection
 		// in which case we should never ever ever reset the dirty flag
 		// on the target because we simply do not know...
-		if ( original instanceof PersistentCollection && result instanceof PersistentCollection ) {
-			final PersistentCollection<?> originalPersistentCollection = (PersistentCollection<?>) original;
-			final PersistentCollection<?> resultPersistentCollection = (PersistentCollection<?>) result;
-
+		if ( original instanceof PersistentCollection<?> originalPersistentCollection
+				&& result instanceof PersistentCollection<?> resultPersistentCollection) {
 			preserveSnapshot( originalPersistentCollection, resultPersistentCollection, elemType, owner, copyCache, session );
-
-			if ( ! originalPersistentCollection.isDirty() ) {
+			if ( !originalPersistentCollection.isDirty() ) {
 				resultPersistentCollection.clearDirty();
 			}
 		}
@@ -585,10 +579,9 @@ public abstract class CollectionType extends AbstractType implements Association
 			}
 
 		}
-		else if ( originalSnapshot instanceof Object[] ) {
-			Object[] arr = (Object[]) originalSnapshot;
-			for ( int i = 0; i < arr.length; i++ ) {
-				arr[i] = elemType.replace( arr[i], null, session, owner, copyCache );
+		else if ( originalSnapshot instanceof Object[] array ) {
+			for ( int i = 0; i < array.length; i++ ) {
+				array[i] = elemType.replace( array[i], null, session, owner, copyCache );
 			}
 			targetSnapshot = originalSnapshot;
 
@@ -800,7 +793,7 @@ public abstract class CollectionType extends AbstractType implements Association
 	}
 
 	@Override
-	public boolean[] toColumnNullness(Object value, Mapping mapping) {
+	public boolean[] toColumnNullness(Object value, MappingContext mapping) {
 		return ArrayHelper.EMPTY_BOOLEAN_ARRAY;
 	}
 }

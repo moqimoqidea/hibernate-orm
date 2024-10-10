@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.sqm.internal;
 
@@ -289,7 +287,11 @@ public class ConcreteSqmSelectQueryPlan<R> implements SelectQueryPlan<R> {
 					}
 					else if ( isClass( resultType ) ) {
 						try {
-							return new RowTransformerConstructorImpl<>( resultType, tupleMetadata );
+							return new RowTransformerConstructorImpl<>(
+									resultType,
+									tupleMetadata,
+									sqm.nodeBuilder().getTypeConfiguration()
+							);
 						}
 						catch (InstantiationException ie) {
 							return new RowTransformerCheckingImpl<>( resultType );
@@ -312,7 +314,11 @@ public class ConcreteSqmSelectQueryPlan<R> implements SelectQueryPlan<R> {
 						return (RowTransformer<T>) new RowTransformerMapImpl( tupleMetadata );
 					}
 					else if ( isClass( resultType ) ) {
-						return new RowTransformerConstructorImpl<>( resultType, tupleMetadata );
+						return new RowTransformerConstructorImpl<>(
+								resultType,
+								tupleMetadata,
+								sqm.nodeBuilder().getTypeConfiguration()
+						);
 					}
 					else {
 						throw new QueryTypeMismatchException( "Result type '" + resultType.getSimpleName()

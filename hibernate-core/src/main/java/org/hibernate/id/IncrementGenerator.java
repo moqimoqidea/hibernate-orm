@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.id;
 
@@ -25,14 +23,12 @@ import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.generator.GeneratorCreationContext;
 import org.hibernate.internal.CoreLogging;
 import org.hibernate.internal.CoreMessageLogger;
-import org.hibernate.service.ServiceRegistry;
-import org.hibernate.type.Type;
 
 import static org.hibernate.id.IdentifierGeneratorHelper.getIntegralDataTypeHolder;
 import static org.hibernate.id.PersistentIdentifierGenerator.CATALOG;
 import static org.hibernate.id.PersistentIdentifierGenerator.PK;
 import static org.hibernate.id.PersistentIdentifierGenerator.SCHEMA;
-import static org.hibernate.internal.util.StringHelper.split;
+import static org.hibernate.internal.util.StringHelper.splitAtCommas;
 import static org.hibernate.internal.util.config.ConfigurationHelper.getString;
 
 /**
@@ -89,25 +85,16 @@ public class IncrementGenerator implements IdentifierGenerator {
 	public void configure(GeneratorCreationContext creationContext, Properties parameters) throws MappingException {
 		returnClass = creationContext.getType().getReturnedClass();
 
-		final JdbcEnvironment jdbcEnvironment = creationContext.getServiceRegistry().requireService( JdbcEnvironment.class );
+		final JdbcEnvironment jdbcEnvironment = creationContext.getDatabase().getJdbcEnvironment();
 		final IdentifierHelper identifierHelper = jdbcEnvironment.getIdentifierHelper();
-
-		column = parameters.getProperty( COLUMN );
-		if ( column == null ) {
-			column = parameters.getProperty( PK );
-		}
-		column = identifierHelper.normalizeQuoting( identifierHelper.toIdentifier( column ) )
+		column = identifierHelper.normalizeQuoting( identifierHelper.toIdentifier( getString( COLUMN, PK, parameters ) ) )
 				.render( jdbcEnvironment.getDialect() );
 
 		final Identifier catalog = identifierHelper.toIdentifier( getString( CATALOG, parameters ) );
 		final Identifier schema =  identifierHelper.toIdentifier( getString( SCHEMA, parameters ) );
 
-		String tableList = parameters.getProperty( TABLES );
-		if ( tableList == null ) {
-			tableList = parameters.getProperty( PersistentIdentifierGenerator.TABLES );
-		}
 		physicalTableNames = new ArrayList<>();
-		for ( String tableName : split( ", ", tableList ) ) {
+		for ( String tableName : splitAtCommas( getString( TABLES, PersistentIdentifierGenerator.TABLES, parameters ) ) ) {
 			physicalTableNames.add( new QualifiedTableName( catalog, schema, identifierHelper.toIdentifier( tableName ) ) );
 		}
 	}
@@ -148,9 +135,9 @@ public class IncrementGenerator implements IdentifierGenerator {
 			LOG.debugf( "Fetching initial value: %s", sql );
 		}
 		try {
-			PreparedStatement st = session.getJdbcCoordinator().getStatementPreparer().prepareStatement( sql );
+			final PreparedStatement st = session.getJdbcCoordinator().getStatementPreparer().prepareStatement( sql );
 			try {
-				ResultSet rs = session.getJdbcCoordinator().getResultSetReturn().extract( st, sql );
+				final ResultSet rs = session.getJdbcCoordinator().getResultSetReturn().extract( st, sql );
 				try {
 					if ( rs.next() ) {
 						previousValueHolder.initialize( rs, 0L ).increment();

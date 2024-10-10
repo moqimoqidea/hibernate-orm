@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.sql.results.internal;
 
@@ -73,9 +71,9 @@ public class StandardRowReader<T> implements RowReader<T> {
 		this.sortedForResolveInstance = (Initializer<InitializerData>[]) sortedForResolveInitializers;
 		this.sortedForResolveInstanceData = new InitializerData[sortedForResolveInstance.length];
 		this.hasCollectionInitializers = hasCollectionInitializers;
-		this.rowTransformer = rowTransformer == RowTransformerArrayImpl.INSTANCE && resultAssemblers.length != 1
-				|| rowTransformer == RowTransformerStandardImpl.INSTANCE
-				|| rowTransformer == RowTransformerSingularReturnImpl.INSTANCE && resultAssemblers.length == 1
+		this.rowTransformer = rowTransformer == RowTransformerArrayImpl.instance() && resultAssemblers.length != 1
+				|| rowTransformer == RowTransformerStandardImpl.instance()
+				|| rowTransformer == RowTransformerSingularReturnImpl.instance() && resultAssemblers.length == 1
 				? null
 				: rowTransformer;
 		this.domainResultJavaType = domainResultJavaType;

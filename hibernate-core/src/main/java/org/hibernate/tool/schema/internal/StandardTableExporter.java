@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.tool.schema.internal;
 
@@ -186,8 +184,7 @@ public class StandardTableExporter implements Exporter<Table> {
 			final AggregateSupport aggregateSupport = dialect.getAggregateSupport();
 			if ( aggregateSupport != null && aggregateSupport.supportsComponentCheckConstraints() ) {
 				for ( Column column : table.getColumns() ) {
-					if ( column instanceof AggregateColumn ) {
-						final AggregateColumn aggregateColumn = (AggregateColumn) column;
+					if ( column instanceof AggregateColumn aggregateColumn ) {
 						if ( !isArray( aggregateColumn ) ) {
 							applyAggregateColumnCheck( buf, aggregateColumn );
 						}
@@ -241,8 +238,7 @@ public class StandardTableExporter implements Exporter<Table> {
 			String aggregatePath,
 			AggregateSupport aggregateSupport,
 			Value value) {
-		if ( value instanceof Component ) {
-			final Component component = (Component) value;
+		if ( value instanceof Component component ) {
 			final AggregateColumn subAggregateColumn = component.getAggregateColumn();
 			if ( subAggregateColumn != null && !isArray( subAggregateColumn )  ) {
 				final String subAggregatePath = subAggregateColumn.getAggregateReadExpressionTemplate( dialect )

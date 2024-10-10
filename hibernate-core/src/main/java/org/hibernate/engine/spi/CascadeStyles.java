@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.engine.spi;
 
@@ -32,7 +30,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle ALL_DELETE_ORPHAN = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action != CascadingActions.CHECK_ON_FLUSH;
 		}
 
@@ -52,7 +50,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle ALL = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action != CascadingActions.CHECK_ON_FLUSH;
 		}
 
@@ -67,7 +65,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle LOCK = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.LOCK
 				|| action == CascadingActions.CHECK_ON_FLUSH;
 		}
@@ -83,7 +81,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle REFRESH = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.REFRESH
 				|| action == CascadingActions.CHECK_ON_FLUSH;
 		}
@@ -99,7 +97,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle EVICT = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.EVICT
 				|| action == CascadingActions.CHECK_ON_FLUSH;
 		}
@@ -115,7 +113,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle REPLICATE = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.REPLICATE
 				|| action == CascadingActions.CHECK_ON_FLUSH;
 		}
@@ -131,7 +129,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle MERGE = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.MERGE
 				|| action == CascadingActions.CHECK_ON_FLUSH;
 		}
@@ -147,7 +145,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle PERSIST = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.PERSIST
 				|| action == CascadingActions.PERSIST_ON_FLUSH;
 		}
@@ -163,7 +161,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle DELETE = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.REMOVE
 				|| action == CascadingActions.CHECK_ON_FLUSH;
 		}
@@ -179,14 +177,14 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle DELETE_ORPHAN = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.REMOVE
 				|| action == CascadingActions.PERSIST_ON_FLUSH
 				|| action == CascadingActions.CHECK_ON_FLUSH;
 		}
 
 		@Override
-		public boolean reallyDoCascade(CascadingAction action) {
+		public boolean reallyDoCascade(CascadingAction<?> action) {
 			return action == CascadingActions.REMOVE
 				|| action == CascadingActions.CHECK_ON_FLUSH;
 		}
@@ -207,7 +205,7 @@ public final class CascadeStyles {
 	 */
 	public static final CascadeStyle NONE = new BaseCascadeStyle() {
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			return action == CascadingActions.CHECK_ON_FLUSH;
 		}
 
@@ -270,7 +268,7 @@ public final class CascadeStyles {
 
 	public static abstract class BaseCascadeStyle implements CascadeStyle {
 		@Override
-		public boolean reallyDoCascade(CascadingAction action) {
+		public boolean reallyDoCascade(CascadingAction<?> action) {
 			return doCascade( action );
 		}
 
@@ -288,7 +286,7 @@ public final class CascadeStyles {
 		}
 
 		@Override
-		public boolean doCascade(CascadingAction action) {
+		public boolean doCascade(CascadingAction<?> action) {
 			if ( action == CascadingActions.CHECK_ON_FLUSH ) {
 				return !reallyDoCascade( CascadingActions.PERSIST_ON_FLUSH );
 			}
@@ -301,7 +299,7 @@ public final class CascadeStyles {
 		}
 
 		@Override
-		public boolean reallyDoCascade(CascadingAction action) {
+		public boolean reallyDoCascade(CascadingAction<?> action) {
 			for ( CascadeStyle style : styles ) {
 				if ( style.reallyDoCascade( action ) ) {
 					return true;

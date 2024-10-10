@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.orm.test.jpa.query;
 
@@ -379,12 +377,11 @@ public class NativeQueryResultTypeAutoDiscoveryTest {
 
 	private Map<Object, Object> buildSettings(Class<?> ... entityTypes) {
 		Map<Object, Object> settings = new HashMap<>();
-
-		settings.put( org.hibernate.cfg.AvailableSettings.HBM2DDL_AUTO, "create-drop" );
-		settings.put( org.hibernate.cfg.AvailableSettings.DIALECT, DIALECT.getClass().getName() );
+		settings.put( AvailableSettings.NATIVE_PREFER_JDBC_DATETIME_TYPES, "true" );
+		settings.put( AvailableSettings.HBM2DDL_AUTO, "create-drop" );
+		settings.put( AvailableSettings.DIALECT, DIALECT.getClass().getName() );
 		settings.put( AvailableSettings.LOADED_CLASSES, Arrays.asList( entityTypes ) );
 		ServiceRegistryUtil.applySettings( settings );
-
 		return settings;
 	}
 
@@ -665,4 +662,3 @@ public class NativeQueryResultTypeAutoDiscoveryTest {
 	}
 
 }
-

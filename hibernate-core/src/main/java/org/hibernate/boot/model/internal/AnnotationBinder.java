@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.model.internal;
 
@@ -49,7 +47,6 @@ import jakarta.persistence.Table;
 import static org.hibernate.boot.model.internal.AnnotatedClassType.EMBEDDABLE;
 import static org.hibernate.boot.model.internal.AnnotatedClassType.ENTITY;
 import static org.hibernate.boot.model.internal.FilterDefBinder.bindFilterDefs;
-import static org.hibernate.boot.model.internal.GeneratorBinder.buildGenerators;
 import static org.hibernate.boot.model.internal.GeneratorParameters.interpretSequenceGenerator;
 import static org.hibernate.boot.model.internal.GeneratorParameters.interpretTableGenerator;
 import static org.hibernate.boot.model.internal.InheritanceState.getInheritanceStateOfSuperEntity;
@@ -107,11 +104,11 @@ public final class AnnotationBinder {
 		// queries ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 		globalRegistrations.getNamedQueryRegistrations().forEach( (name, queryRegistration) -> {
-			QueryBinder.bindQuery( queryRegistration.configuration(), context, true );
+			QueryBinder.bindQuery( queryRegistration.configuration(), context, true, null );
 		} );
 
 		globalRegistrations.getNamedNativeQueryRegistrations().forEach( (name, queryRegistration) -> {
-			QueryBinder.bindNativeQuery( queryRegistration.configuration(), context, true );
+			QueryBinder.bindNativeQuery( queryRegistration.configuration(), context, null, true );
 		} );
 
 		globalRegistrations.getNamedStoredProcedureQueryRegistrations().forEach( (name, queryRegistration) -> {
@@ -132,7 +129,7 @@ public final class AnnotationBinder {
 				sourceContext( context ).getClassDetailsRegistry()
 						.resolveClassDetails( pack.getName() + ".package-info" );
 
-		buildGenerators( packageInfoClassDetails, context );
+		GeneratorBinder.registerGlobalGenerators( packageInfoClassDetails, context );
 
 		bindTypeDescriptorRegistrations( packageInfoClassDetails, context );
 		bindEmbeddableInstantiatorRegistrations( packageInfoClassDetails, context );
@@ -155,13 +152,13 @@ public final class AnnotationBinder {
 		annotationTarget.forEachRepeatedAnnotationUsages(
 				HibernateAnnotations.NAMED_QUERY,
 				sourceModelContext,
-				(usage) -> QueryBinder.bindQuery( usage, context )
+				(usage) -> QueryBinder.bindQuery( usage, context, annotationTarget )
 		);
 
 		annotationTarget.forEachRepeatedAnnotationUsages(
 				HibernateAnnotations.NAMED_NATIVE_QUERY,
 				sourceModelContext,
-				(usage) -> QueryBinder.bindNativeQuery( usage, context )
+				(usage) -> QueryBinder.bindNativeQuery( usage, context, annotationTarget )
 		);
 	}
 
@@ -177,13 +174,13 @@ public final class AnnotationBinder {
 		annotationTarget.forEachRepeatedAnnotationUsages(
 				JpaAnnotations.NAMED_QUERY,
 				sourceModelContext,
-				(usage) -> QueryBinder.bindQuery( usage, context, false )
+				(usage) -> QueryBinder.bindQuery( usage, context, false, annotationTarget )
 		);
 
 		annotationTarget.forEachRepeatedAnnotationUsages(
 				JpaAnnotations.NAMED_NATIVE_QUERY,
 				sourceModelContext,
-				(usage) -> QueryBinder.bindNativeQuery( usage, context, false )
+				(usage) -> QueryBinder.bindNativeQuery( usage, context, annotationTarget, false )
 		);
 
 		annotationTarget.forEachRepeatedAnnotationUsages(
@@ -218,9 +215,9 @@ public final class AnnotationBinder {
 		bindConverterRegistrations( classDetails, context );
 
 		// try to find class level generators
-		final Map<String, IdentifierGeneratorDefinition> generators = buildGenerators( classDetails, context );
+//		GeneratorBinder.registerGlobalGenerators( classDetails, context );
 		if ( context.getMetadataCollector().getClassType( classDetails ) == ENTITY ) {
-			EntityBinder.bindEntityClass( classDetails, inheritanceStatePerClass, generators, context );
+			EntityBinder.bindEntityClass( classDetails, inheritanceStatePerClass, context );
 		}
 	}
 

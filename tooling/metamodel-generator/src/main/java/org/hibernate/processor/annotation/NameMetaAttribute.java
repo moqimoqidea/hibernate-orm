@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.annotation;
 
@@ -42,21 +40,24 @@ class NameMetaAttribute implements MetaAttribute {
 
 	@Override
 	public String getAttributeNameDeclarationString() {
-		return new StringBuilder()
-				.append("public static final ")
+		final StringBuilder declaration = new StringBuilder();
+		if ( !annotationMetaEntity.isJakartaDataStyle() ) {
+			declaration.append( "public static final " );
+		}
+		return declaration
 				.append(annotationMetaEntity.importType(String.class.getName()))
-				.append(" ")
+				.append(' ')
 				.append(prefix)
 				.append(fieldName())
 				.append(" = ")
-				.append("\"")
+				.append('"')
 				.append(name)
-				.append("\"")
-				.append(";")
+				.append('"')
+				.append(';')
 				.toString();
 	}
 
-	private String fieldName() {
+	String fieldName() {
 		return nameToFieldName(name.charAt(0) == '#' ? name.substring(1) : name);
 	}
 

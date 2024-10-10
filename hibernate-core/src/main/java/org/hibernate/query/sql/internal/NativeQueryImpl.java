@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.sql.internal;
 
@@ -22,6 +20,7 @@ import java.util.function.Supplier;
 
 import org.hibernate.CacheMode;
 import org.hibernate.FlushMode;
+import org.hibernate.query.QueryFlushMode;
 import org.hibernate.HibernateException;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
@@ -55,7 +54,6 @@ import org.hibernate.query.TupleTransformer;
 import org.hibernate.query.internal.DelegatingDomainQueryExecutionContext;
 import org.hibernate.query.internal.ParameterMetadataImpl;
 import org.hibernate.query.internal.QueryOptionsImpl;
-import org.hibernate.query.internal.QueryParameterBindingsImpl;
 import org.hibernate.query.internal.ResultSetMappingResolutionContext;
 import org.hibernate.query.named.NamedResultSetMappingMemento;
 import org.hibernate.query.results.Builders;
@@ -469,7 +467,7 @@ public class NativeQueryImpl<R>
 				isCacheable(),
 				getCacheRegion(),
 				getCacheMode(),
-				getHibernateFlushMode(),
+				getQueryOptions().getFlushMode(),
 				isReadOnly(),
 				getTimeout(),
 				getFetchSize(),
@@ -607,7 +605,7 @@ public class NativeQueryImpl<R>
 
 	private boolean shouldFlush() {
 		if ( getSession().isTransactionInProgress() ) {
-			FlushMode effectiveFlushMode = getHibernateFlushMode();
+			FlushMode effectiveFlushMode = getQueryOptions().getFlushMode();
 			if ( effectiveFlushMode == null ) {
 				effectiveFlushMode = getSession().getHibernateFlushMode();
 			}
@@ -1177,6 +1175,12 @@ public class NativeQueryImpl<R>
 	@Override
 	public NativeQueryImplementor<R> setHibernateFlushMode(FlushMode flushMode) {
 		super.setHibernateFlushMode( flushMode );
+		return this;
+	}
+
+	@Override
+	public NativeQueryImplementor<R> setQueryFlushMode(QueryFlushMode queryFlushMode) {
+		super.setQueryFlushMode(queryFlushMode);
 		return this;
 	}
 

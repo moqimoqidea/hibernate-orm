@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.model.internal;
 
@@ -44,7 +42,7 @@ import org.hibernate.models.spi.MethodDetails;
 import org.hibernate.models.spi.SourceModelBuildingContext;
 import org.hibernate.models.spi.TypeDetails;
 import org.hibernate.property.access.internal.PropertyAccessStrategyCompositeUserTypeImpl;
-import org.hibernate.property.access.internal.PropertyAccessStrategyMixedImpl;
+import org.hibernate.property.access.internal.PropertyAccessStrategyGetterImpl;
 import org.hibernate.property.access.spi.PropertyAccessStrategy;
 import org.hibernate.resource.beans.internal.FallbackBeanInstanceProducer;
 import org.hibernate.resource.beans.spi.ManagedBeanRegistry;
@@ -461,7 +459,6 @@ public class EmbeddableBinder {
 							? Nullability.FORCED_NULL
 							: ( isNullable ? Nullability.NO_CONSTRAINT : Nullability.FORCED_NOT_NULL ),
 					propertyAnnotatedElement,
-					Map.of(),
 					entityBinder,
 					isIdentifierMapper,
 					isComponentEmbedded,
@@ -480,7 +477,6 @@ public class EmbeddableBinder {
 							subholder,
 							propertyAnnotatedElement,
 							value,
-							Map.of(),
 							context
 					);
 				}
@@ -790,7 +786,7 @@ public class EmbeddableBinder {
 		for ( Property property : component.getProperties() ) {
 			sortedPropertyNames.add( property.getName() );
 			sortedPropertyTypes.add(
-					PropertyAccessStrategyMixedImpl.INSTANCE.buildPropertyAccess(
+					PropertyAccessStrategyGetterImpl.INSTANCE.buildPropertyAccess(
 							compositeUserType.embeddable(),
 							property.getName(),
 							false

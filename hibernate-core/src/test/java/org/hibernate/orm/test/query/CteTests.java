@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.orm.test.query;
 
@@ -262,11 +260,11 @@ public class CteTests {
 
 			final QueryImplementor<String> query = session.createQuery(
 					"select c.name.first from Contact c where c.id in (" +
-							"with contacts as (" +
+							"with cte as (" +
 							"select c.id id, c.name.first firstName from Contact c " +
 							"where c.id in (1,2)" +
 							") " +
-							"select c.id from contacts c" +
+							"select c.id from cte c" +
 							")",
 					String.class
 			);
@@ -504,7 +502,7 @@ public class CteTests {
 		scope.inTransaction(
 				session -> {
 					final HibernateCriteriaBuilder cb = session.getCriteriaBuilder();
-					final JpaParameterExpression<List<Integer>> param = cb.parameterList( Integer.class );
+					final JpaParameterExpression<List<Integer>> param = cb.listParameter( Integer.class );
 					final JpaCriteriaQuery<Tuple> cq = cb.createTupleQuery();
 
 					final JpaCriteriaQuery<Tuple> baseQuery = cb.createTupleQuery();

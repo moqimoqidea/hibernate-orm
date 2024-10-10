@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.mapping;
 
@@ -22,6 +20,7 @@ import org.hibernate.type.CompositeType;
 import org.hibernate.type.EntityType;
 import org.hibernate.type.MetaType;
 import org.hibernate.type.Type;
+import org.hibernate.type.MappingContext;
 
 /**
  * A mapping model object which represents something that's persisted "by value",
@@ -73,21 +72,28 @@ public interface Value extends Serializable {
 
 	Type getType() throws MappingException;
 
-	@Incubating
+
+	/**
+	 * @deprecated use {@link #getSelectableType(MappingContext, int)}
+	 */
+	@Deprecated(since = "7.0")
 	default JdbcMapping getSelectableType(Mapping factory, int index) throws MappingException {
-		return getType( factory, getType(), index );
+		return getSelectableType( (MappingContext) factory, index );
 	}
 
-	private JdbcMapping getType(Mapping factory, Type elementType, int index) {
-		if ( elementType instanceof CompositeType ) {
-			final Type[] subtypes = ( (CompositeType) elementType ).getSubtypes();
+	@Incubating
+	default JdbcMapping getSelectableType(MappingContext mappingContext, int index) throws MappingException {
+		return getType( mappingContext, getType(), index );
+	}
+
+	private JdbcMapping getType(MappingContext factory, Type elementType, int index) {
+		if ( elementType instanceof CompositeType compositeType ) {
+			final Type[] subtypes = compositeType.getSubtypes();
 			for ( int i = 0; i < subtypes.length; i++ ) {
 				final Type subtype = subtypes[i];
 				final int columnSpan;
-				if ( subtype instanceof EntityType ) {
-					final EntityType entityType = (EntityType) subtype;
-					final Type idType = getIdType( entityType );
-					columnSpan = idType.getColumnSpan( factory );
+				if ( subtype instanceof EntityType entityType ) {
+					columnSpan = getIdType( entityType ).getColumnSpan( factory );
 				}
 				else {
 					columnSpan = subtype.getColumnSpan( factory );
@@ -102,13 +108,11 @@ public interface Value extends Serializable {
 			// Should never happen
 			throw new IllegalStateException( "Type index is past the types column span!" );
 		}
-		else if ( elementType instanceof EntityType ) {
-			final EntityType entityType = (EntityType) elementType;
-			final Type idType = getIdType( entityType );
-			return getType( factory, idType, index );
+		else if ( elementType instanceof EntityType entityType ) {
+			return getType( factory, getIdType( entityType ), index );
 		}
-		else if ( elementType instanceof MetaType ) {
-			return (JdbcMapping) ( (MetaType) elementType ).getBaseType();
+		else if ( elementType instanceof MetaType metaType ) {
+			return (JdbcMapping) metaType.getBaseType();
 		}
 		return (JdbcMapping) elementType;
 	}
@@ -145,7 +149,15 @@ public interface Value extends Serializable {
 
 	boolean isSimpleValue();
 
-	boolean isValid(Mapping mapping) throws MappingException;
+	/**
+	 * @deprecated use {@link #isValid(MappingContext)}
+	 */
+	@Deprecated(since = "7.0")
+	default boolean isValid(Mapping mapping) throws MappingException{
+		return isValid( (MappingContext) mapping );
+	}
+
+	boolean isValid(MappingContext mappingContext) throws MappingException;
 
 	void setTypeUsingReflection(String className, String propertyName) throws MappingException;
 

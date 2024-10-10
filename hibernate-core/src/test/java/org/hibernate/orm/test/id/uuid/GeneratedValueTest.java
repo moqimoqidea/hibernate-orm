@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.orm.test.id.uuid;
 
@@ -23,8 +21,7 @@ import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.SybaseDialect;
 import org.hibernate.generator.Generator;
-import org.hibernate.id.IdentifierGenerator;
-import org.hibernate.id.UUIDGenerator;
+import org.hibernate.id.uuid.UuidGenerator;
 import org.hibernate.mapping.KeyValue;
 import org.hibernate.mapping.PersistentClass;
 import org.hibernate.mapping.RootClass;
@@ -60,9 +57,8 @@ public class GeneratedValueTest {
 			assertEquals( UUID.class, entityBinding.getIdentifier().getType().getReturnedClass() );
 			KeyValue keyValue = entityBinding.getIdentifier();
 			Dialect dialect = metadata.getDatabase().getDialect();
-			final Generator generator1 = keyValue.createGenerator( dialect, (RootClass) entityBinding);
-			IdentifierGenerator generator = generator1 instanceof IdentifierGenerator ? (IdentifierGenerator) generator1 : null;
-			assertTyping( UUIDGenerator.class, generator );
+			final Generator generator = keyValue.createGenerator( dialect, (RootClass) entityBinding);
+			assertTyping( UuidGenerator.class, generator );
 
 			// now a functional test
 			SessionFactory sf = metadata.buildSessionFactory();

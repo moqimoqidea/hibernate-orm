@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query;
 
@@ -14,7 +12,6 @@ import java.util.Map;
 
 import org.hibernate.FlushMode;
 import org.hibernate.Incubating;
-import org.hibernate.Session;
 
 import jakarta.persistence.FlushModeType;
 import jakarta.persistence.Parameter;
@@ -81,10 +78,10 @@ public interface MutationQuery extends CommonQueryContract {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Covariant returns
 
-	@Override
+	@Override @Deprecated(since = "7")
 	MutationQuery setFlushMode(FlushModeType flushMode);
 
-	@Override
+	@Override @Deprecated(since = "7")
 	MutationQuery setHibernateFlushMode(FlushMode flushMode);
 
 	@Override
@@ -209,4 +206,7 @@ public interface MutationQuery extends CommonQueryContract {
 
 	@Override
 	MutationQuery setProperties(@SuppressWarnings("rawtypes") Map bean);
+
+	@Override
+	MutationQuery setQueryFlushMode(QueryFlushMode queryFlushMode);
 }

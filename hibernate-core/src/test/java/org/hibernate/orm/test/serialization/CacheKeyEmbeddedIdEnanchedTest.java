@@ -1,3 +1,7 @@
+/*
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
+ */
 package org.hibernate.orm.test.serialization;
 
 import java.io.ByteArrayInputStream;
@@ -62,7 +66,7 @@ public class CacheKeyEmbeddedIdEnanchedTest  {
 
 	private void testId(SessionFactoryScope scope, CacheKeysFactory cacheKeysFactory, String entityName, Object id) throws Exception {
 		SessionFactoryImplementor sessionFactory = scope.getSessionFactory();
-		final EntityPersister persister = sessionFactory.getMetamodel().entityPersister( entityName );
+		final EntityPersister persister = sessionFactory.getMappingMetamodel().findEntityDescriptor( entityName );
 		final Object key = cacheKeysFactory.createEntityKey(
 				id,
 				persister,

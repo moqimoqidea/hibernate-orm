@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.engine.spi;
 
@@ -1169,8 +1167,7 @@ public class ActionQueue {
 				if ( value == null ) {
 					return;
 				}
-				if ( type instanceof EntityType ) {
-					final EntityType entityType = (EntityType) type;
+				if ( type instanceof EntityType entityType ) {
 					final InsertInfo insertInfo = insertInfosByEntity.get( value );
 					if ( insertInfo != null ) {
 						if ( entityType.isOneToOne()
@@ -1190,8 +1187,7 @@ public class ActionQueue {
 						}
 					}
 				}
-				else if ( type instanceof CollectionType ) {
-					CollectionType collectionType = (CollectionType) type;
+				else if ( type instanceof CollectionType collectionType ) {
 					final PluralAttributeMapping pluralAttributeMapping = insertAction.getSession()
 							.getFactory()
 							.getMappingMetamodel()
@@ -1214,9 +1210,8 @@ public class ActionQueue {
 						}
 					}
 				}
-				else if ( type instanceof ComponentType ) {
+				else if ( type instanceof ComponentType compositeType ) {
 					// Support recursive checks of composite type properties for associations and collections.
-					ComponentType compositeType = (ComponentType) type;
 					final SharedSessionContractImplementor session = insertAction.getSession();
 					final Object[] componentValues = compositeType.getPropertyValues( value, session );
 					for ( int j = 0; j < componentValues.length; ++j ) {

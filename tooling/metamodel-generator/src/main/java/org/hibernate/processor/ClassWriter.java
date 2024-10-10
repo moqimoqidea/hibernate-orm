@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor;
 
@@ -82,6 +80,8 @@ public final class ClassWriter {
 		final StringWriter sw = new StringWriter();
 		try ( PrintWriter pw = new PrintWriter(sw) ) {
 
+			pw.println( entity.javadoc() );
+
 			if ( context.addDependentAnnotation() && entity.isInjectable() ) {
 				pw.println( writeScopeAnnotation( entity ) );
 			}
@@ -103,7 +103,8 @@ public final class ClassWriter {
 			final List<MetaAttribute> members = entity.getMembers();
 			for ( MetaAttribute metaMember : members ) {
 				if ( metaMember.hasStringAttribute() ) {
-					pw.println( '\t' + metaMember.getAttributeNameDeclarationString() );
+					metaMember.getAttributeNameDeclarationString().lines()
+							.forEach(line -> pw.println('\t' + line));
 				}
 			}
 

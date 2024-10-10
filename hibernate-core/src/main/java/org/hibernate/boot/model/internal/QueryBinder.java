@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.model.internal;
 
@@ -16,6 +14,8 @@ import java.util.function.Supplier;
 import org.hibernate.AnnotationException;
 import org.hibernate.CacheMode;
 import org.hibernate.FlushMode;
+import org.hibernate.models.spi.AnnotationTarget;
+import org.hibernate.query.QueryFlushMode;
 import org.hibernate.LockOptions;
 import org.hibernate.annotations.FlushModeType;
 import org.hibernate.annotations.HQLSelect;
@@ -35,6 +35,7 @@ import org.hibernate.boot.spi.MetadataBuildingContext;
 import org.hibernate.internal.CoreMessageLogger;
 import org.hibernate.internal.log.DeprecationLogger;
 import org.hibernate.jpa.HibernateHints;
+import org.hibernate.jpa.internal.util.FlushModeTypeHelper;
 import org.hibernate.models.internal.util.StringHelper;
 import org.hibernate.models.spi.ClassDetails;
 import org.hibernate.models.spi.SourceModelBuildingContext;
@@ -74,7 +75,8 @@ public abstract class QueryBinder {
 	public static void bindQuery(
 			NamedQuery namedQuery,
 			MetadataBuildingContext context,
-			boolean isDefault) {
+			boolean isDefault,
+			AnnotationTarget annotationTarget) {
 		if ( namedQuery == null ) {
 			return;
 		}
@@ -94,7 +96,7 @@ public abstract class QueryBinder {
 		final QueryHintDefinition hints = new QueryHintDefinition( queryName, namedQuery.hints() );
 		final NamedHqlQueryDefinition<?> queryMapping =
 				createNamedQueryDefinition( queryName, queryString, resultClass,
-						hints.determineLockOptions( namedQuery ), hints );
+						hints.determineLockOptions( namedQuery ), hints, annotationTarget );
 		if ( isDefault ) {
 			context.getMetadataCollector().addDefaultQuery( queryMapping );
 		}
@@ -105,8 +107,8 @@ public abstract class QueryBinder {
 
 	private static <T> NamedHqlQueryDefinitionImpl<T> createNamedQueryDefinition(
 			String queryName, String queryString, Class<T> resultClass, LockOptions lockOptions,
-			QueryHintDefinition hints) {
-		return new NamedHqlQueryDefinitionImpl.Builder<T>(queryName)
+			QueryHintDefinition hints, AnnotationTarget annotationTarget) {
+		return new NamedHqlQueryDefinitionImpl.Builder<T>(queryName, annotationTarget)
 				.setHqlString(queryString)
 				.setResultClass(resultClass)
 				.setCacheable(hints.getCacheability())
@@ -124,6 +126,7 @@ public abstract class QueryBinder {
 	public static void bindNativeQuery(
 			NamedNativeQuery namedNativeQuery,
 			MetadataBuildingContext context,
+			AnnotationTarget location,
 			boolean isDefault) {
 		if ( namedNativeQuery == null ) {
 			return;
@@ -143,7 +146,7 @@ public abstract class QueryBinder {
 		final Class<?> resultClass = void.class == resultClassDetails ? null : resultClassDetails;
 
 		final NamedNativeQueryDefinition<?> queryDefinition =
-				createNamedQueryDefinition( registrationName, queryString, resultClass, resultSetMappingName, hints );
+				createNamedQueryDefinition( registrationName, queryString, resultClass, resultSetMappingName, hints, location );
 
 		if ( LOG.isDebugEnabled() ) {
 			LOG.debugf( "Binding named native query: %s => %s",
@@ -161,8 +164,9 @@ public abstract class QueryBinder {
 	private static <T> NamedNativeQueryDefinition<T> createNamedQueryDefinition(
 			String registrationName, String queryString,
 			Class<T> resultClass, String resultSetMappingName,
-			QueryHintDefinition hints) {
-		return new NamedNativeQueryDefinition.Builder<T>(registrationName)
+			QueryHintDefinition hints,
+			AnnotationTarget location) {
+		return new NamedNativeQueryDefinition.Builder<T>(registrationName, location)
 				.setSqlString(queryString)
 				.setResultClass(resultClass)
 				.setResultSetMappingName(resultSetMappingName)
@@ -184,10 +188,11 @@ public abstract class QueryBinder {
 			SQLSelect sqlSelect,
 			ClassDetails annotatedClass,
 			MetadataBuildingContext context) {
-		final NamedNativeQueryDefinition.Builder<?> builder = new NamedNativeQueryDefinition.Builder<>( name )
-				.setFlushMode( FlushMode.MANUAL )
-				.setSqlString( sqlSelect.sql() )
-				.setQuerySpaces( setOf( sqlSelect.querySpaces() ) );
+		final NamedNativeQueryDefinition.Builder<?> builder =
+				new NamedNativeQueryDefinition.Builder<>( name )
+						.setFlushMode( FlushMode.MANUAL )
+						.setSqlString( sqlSelect.sql() )
+						.setQuerySpaces( setOf( sqlSelect.querySpaces() ) );
 
 		if ( annotatedClass != null ) {
 			builder.setResultClass(
@@ -210,7 +215,8 @@ public abstract class QueryBinder {
 
 	public static void bindNativeQuery(
 			org.hibernate.annotations.NamedNativeQuery namedNativeQuery,
-			MetadataBuildingContext context) {
+			MetadataBuildingContext context,
+			AnnotationTarget location) {
 		if ( namedNativeQuery == null ) {
 			return;
 		}
@@ -231,7 +237,7 @@ public abstract class QueryBinder {
 
 		final NamedNativeQueryDefinition.Builder<?> builder =
 				createQueryDefinition( namedNativeQuery, registrationName, resultSetMappingName, resultClass,
-						namedNativeQuery.timeout(), namedNativeQuery.fetchSize(), querySpaces );
+						namedNativeQuery.timeout(), namedNativeQuery.fetchSize(), querySpaces, location );
 
 		if ( TRUE == namedNativeQuery.callable() ) {
 			final NamedProcedureCallDefinition definition =
@@ -261,8 +267,9 @@ public abstract class QueryBinder {
 			String registrationName, String resultSetMappingName,
 			Class<T> resultClass,
 			int timeout, int fetchSize,
-			HashSet<String> querySpaces) {
-		return new NamedNativeQueryDefinition.Builder<T>(registrationName)
+			HashSet<String> querySpaces,
+			AnnotationTarget location) {
+		return new NamedNativeQueryDefinition.Builder<T>(registrationName, location)
 				.setSqlString(namedNativeQuery.query())
 				.setResultSetMappingName(resultSetMappingName)
 				.setResultClass(resultClass)
@@ -271,7 +278,7 @@ public abstract class QueryBinder {
 				.setCacheMode(getCacheMode(namedNativeQuery.cacheRetrieveMode(), namedNativeQuery.cacheStoreMode()))
 				.setTimeout(timeout < 0 ? null : timeout)
 				.setFetchSize(fetchSize < 0 ? null : fetchSize)
-				.setFlushMode(getFlushMode(namedNativeQuery.flushMode()))
+				.setFlushMode(getFlushMode(namedNativeQuery.flush(), namedNativeQuery.flushMode()))
 				.setReadOnly(namedNativeQuery.readOnly())
 				.setQuerySpaces(querySpaces)
 				.setComment(nullIfEmpty(namedNativeQuery.comment()));
@@ -365,17 +372,18 @@ public abstract class QueryBinder {
 			String name,
 			HQLSelect hqlSelect,
 			MetadataBuildingContext context) {
-		final NamedHqlQueryDefinition<?> hqlQueryDefinition = new NamedHqlQueryDefinition.Builder<>( name )
-				.setFlushMode( FlushMode.MANUAL )
-				.setHqlString( hqlSelect.query() )
-				.build();
-
+		final NamedHqlQueryDefinition<?> hqlQueryDefinition =
+				new NamedHqlQueryDefinition.Builder<>( name )
+						.setFlushMode( FlushMode.MANUAL )
+						.setHqlString( hqlSelect.query() )
+						.build();
 		context.getMetadataCollector().addNamedQuery( hqlQueryDefinition );
 	}
 
 	public static void bindQuery(
 			org.hibernate.annotations.NamedQuery namedQuery,
-			MetadataBuildingContext context) {
+			MetadataBuildingContext context,
+			AnnotationTarget location) {
 		if ( namedQuery == null ) {
 			return;
 		}
@@ -389,7 +397,7 @@ public abstract class QueryBinder {
 
 		final NamedHqlQueryDefinition.Builder<?> builder =
 				createQueryDefinition( namedQuery, registrationName, resultClass,
-						namedQuery.timeout(), namedQuery.fetchSize() ) ;
+						namedQuery.timeout(), namedQuery.fetchSize(), location ) ;
 
 		final NamedHqlQueryDefinitionImpl<?> hqlQueryDefinition = builder.build();
 
@@ -403,8 +411,9 @@ public abstract class QueryBinder {
 
 	private static <T> NamedHqlQueryDefinition.Builder<T> createQueryDefinition(
 			org.hibernate.annotations.NamedQuery namedQuery,
-			String registrationName, Class<T> resultClass, int timeout, int fetchSize) {
-		return new NamedHqlQueryDefinition.Builder<T>(registrationName)
+			String registrationName, Class<T> resultClass, int timeout, int fetchSize,
+			AnnotationTarget location) {
+		return new NamedHqlQueryDefinition.Builder<T>(registrationName, location)
 				.setHqlString(namedQuery.query())
 				.setResultClass(resultClass)
 				.setCacheable(namedQuery.cacheable())
@@ -412,7 +421,7 @@ public abstract class QueryBinder {
 				.setCacheMode(getCacheMode(namedQuery.cacheRetrieveMode(), namedQuery.cacheStoreMode()))
 				.setTimeout(timeout < 0 ? null : timeout)
 				.setFetchSize(fetchSize < 0 ? null : fetchSize)
-				.setFlushMode(getFlushMode(namedQuery.flushMode()))
+				.setFlushMode(getFlushMode(namedQuery.flush(), namedQuery.flushMode()))
 				.setReadOnly(namedQuery.readOnly())
 				.setComment(nullIfEmpty(namedQuery.comment()));
 	}
@@ -420,6 +429,12 @@ public abstract class QueryBinder {
 	private static CacheMode getCacheMode(CacheRetrieveMode cacheRetrieveMode, CacheStoreMode cacheStoreMode) {
 		final CacheMode cacheMode = CacheMode.fromJpaModes( cacheRetrieveMode, cacheStoreMode );
 		return cacheMode == null ? CacheMode.NORMAL : cacheMode;
+	}
+
+	private static FlushMode getFlushMode(QueryFlushMode queryFlushMode, FlushModeType flushModeType) {
+		return queryFlushMode == QueryFlushMode.DEFAULT
+				? getFlushMode( flushModeType )
+				: FlushModeTypeHelper.getFlushMode(queryFlushMode);
 	}
 
 	private static FlushMode getFlushMode(FlushModeType flushModeType) {

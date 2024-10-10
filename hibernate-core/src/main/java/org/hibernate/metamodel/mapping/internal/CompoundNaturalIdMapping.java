@@ -1,13 +1,10 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.metamodel.mapping.internal;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -61,6 +58,11 @@ public class CompoundNaturalIdMapping extends AbstractNaturalIdMapping implement
 	private final List<SingularAttributeMapping> attributes;
 
 	private List<JdbcMapping> jdbcMappings;
+	/*
+		This value is used to determine the size of the array used to create the ImmutableFetchList (see org.hibernate.sql.results.graph.internal.ImmutableFetchList#Builder)
+		The Fetch is inserted into the array at a position corresponding to its Fetchable key value.
+	 */
+	private final int maxFetchableKeyIndex;
 
 	public CompoundNaturalIdMapping(
 			EntityMappingType declaringType,
@@ -68,6 +70,14 @@ public class CompoundNaturalIdMapping extends AbstractNaturalIdMapping implement
 			MappingModelCreationProcess creationProcess) {
 		super( declaringType, isMutable( attributes ) );
 		this.attributes = attributes;
+
+		int maxIndex = 0;
+		for ( SingularAttributeMapping attribute : attributes ) {
+			if ( attribute.getFetchableKey() > maxIndex ) {
+				maxIndex = attribute.getFetchableKey();
+			}
+		}
+		this.maxFetchableKeyIndex = maxIndex + 1;
 
 		creationProcess.registerInitializationCallback(
 				"Determine compound natural-id JDBC mappings ( " + declaringType.getEntityName() + ")",
@@ -235,7 +245,15 @@ public class CompoundNaturalIdMapping extends AbstractNaturalIdMapping implement
 
 	@Override
 	public boolean areEqual(Object one, Object other, SharedSessionContractImplementor session) {
-		return Arrays.equals( (Object[]) one, (Object[]) other );
+		final Object[] one1 = (Object[]) one;
+		final Object[] other1 = (Object[]) other;
+		final List<SingularAttributeMapping> naturalIdAttributes = getNaturalIdAttributes();
+		for ( int i = 0; i < naturalIdAttributes.size(); i++ ) {
+			if ( !naturalIdAttributes.get( i ).areEqual( one1[i], other1[i], session ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	@Override
@@ -531,6 +549,10 @@ public class CompoundNaturalIdMapping extends AbstractNaturalIdMapping implement
 		attributes.forEach( consumer );
 	}
 
+	@Override
+	public int getNumberOfFetchableKeys() {
+		return maxFetchableKeyIndex;
+	}
 
 	public static class DomainResultImpl implements DomainResult<Object[]>, FetchParent {
 		private final NavigablePath navigablePath;

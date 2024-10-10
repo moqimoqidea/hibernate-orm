@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.dialect.unique;
 
@@ -76,7 +74,7 @@ public class CreateTableUniqueDelegate extends AlterTableUniqueDelegate {
 		if ( uniqueKey.isNameExplicit() ) {
 			fragment.append( "constraint " ).append( uniqueKey.getName() ).append( " " );
 		}
-		fragment.append( uniqueConstraintSql(uniqueKey) );
+		fragment.append( uniqueConstraintSql( uniqueKey ) );
 	}
 
 	private static boolean isSingleColumnUnique(Table table, UniqueKey uniqueKey) {

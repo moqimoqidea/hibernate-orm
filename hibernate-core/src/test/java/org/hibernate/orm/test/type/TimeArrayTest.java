@@ -1,13 +1,9 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.orm.test.type;
 
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.time.LocalTime;
 
 import org.hibernate.dialect.Dialect;
@@ -158,16 +154,16 @@ public class TimeArrayTest {
 				assertThat(
 						tuple[1],
 						is( new Object[] {
-								new Timestamp( Time.valueOf( time1 ).getTime() ),
-								new Timestamp( Time.valueOf( time2 ).getTime() ),
-								new Timestamp( Time.valueOf( time3 ).getTime() )
+								time1,
+								time2,
+								time3
 						} )
 				);
 			}
 			else {
 				assertThat(
 						tuple[1],
-						is( new Time[] { Time.valueOf( time1 ), Time.valueOf( time2 ), Time.valueOf( time3 ) } )
+						is( new LocalTime[] { time1, time2, time3 } )
 				);
 			}
 		} );

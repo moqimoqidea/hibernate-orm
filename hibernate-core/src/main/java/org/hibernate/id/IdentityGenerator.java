@@ -1,20 +1,20 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.id;
 
+import java.util.List;
+
 import org.hibernate.boot.spi.SessionFactoryOptions;
 import org.hibernate.dialect.Dialect;
-import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.generator.OnExecutionGenerator;
 import org.hibernate.id.insert.BasicSelectingDelegate;
 import org.hibernate.id.insert.GetGeneratedKeysDelegate;
 import org.hibernate.id.insert.InsertGeneratedIdentifierDelegate;
 import org.hibernate.id.insert.InsertReturningDelegate;
 import org.hibernate.id.insert.UniqueKeySelectingDelegate;
+import org.hibernate.metamodel.mapping.ModelPart;
 import org.hibernate.persister.entity.EntityPersister;
 
 import static org.hibernate.generator.EventType.INSERT;
@@ -54,11 +54,16 @@ public class IdentityGenerator
 
 	@Override
 	public InsertGeneratedIdentifierDelegate getGeneratedIdentifierDelegate(EntityPersister persister) {
-		final SessionFactoryImplementor factory = persister.getFactory();
-		final Dialect dialect = factory.getJdbcServices().getDialect();
+		final Dialect dialect = persister.getFactory().getJdbcServices().getDialect();
+		final SessionFactoryOptions sessionFactoryOptions = persister.getFactory().getSessionFactoryOptions();
+		final List<? extends ModelPart> generatedProperties = persister.getGeneratedProperties( INSERT );
+		if ( generatedProperties.size() == 1 && sessionFactoryOptions.isGetGeneratedKeysEnabled() ) {
+			// Use Connection#prepareStatement(sql, Statement.RETURN_GENERATED_KEYS) when only retrieving identity
+			assert generatedProperties.get( 0 ).isEntityIdentifierMapping();
+			return dialect.getIdentityColumnSupport().buildGetGeneratedKeysDelegate( persister );
+		}
 		// Try to use generic delegates if the dialects supports them
-		final SessionFactoryOptions sessionFactoryOptions = factory.getSessionFactoryOptions();
-		if ( dialect.supportsInsertReturningGeneratedKeys() && sessionFactoryOptions.isGetGeneratedKeysEnabled() ) {
+		else if ( dialect.supportsInsertReturningGeneratedKeys() && sessionFactoryOptions.isGetGeneratedKeysEnabled() ) {
 			return new GetGeneratedKeysDelegate( persister, false, INSERT );
 		}
 		else if ( dialect.supportsInsertReturning() && noCustomSql( persister, INSERT ) ) {

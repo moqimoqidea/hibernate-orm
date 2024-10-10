@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.model.internal;
 
@@ -169,7 +167,7 @@ import static org.hibernate.boot.model.internal.BinderHelper.isDefault;
 import static org.hibernate.boot.model.internal.BinderHelper.isPrimitive;
 import static org.hibernate.boot.model.internal.DialectOverridesAnnotationHelper.getOverridableAnnotation;
 import static org.hibernate.boot.model.internal.EmbeddableBinder.fillEmbeddable;
-import static org.hibernate.boot.model.internal.GeneratorBinder.buildGenerators;
+import static org.hibernate.boot.model.internal.GeneratorBinder.visitIdGeneratorDefinitions;
 import static org.hibernate.boot.model.internal.PropertyHolderBuilder.buildPropertyHolder;
 import static org.hibernate.engine.spi.ExecuteUpdateResultCheckStyle.fromResultCheckStyle;
 import static org.hibernate.internal.util.ReflectHelper.getDefaultSupplier;
@@ -263,7 +261,6 @@ public abstract class CollectionBinder {
 			PropertyHolder propertyHolder,
 			Nullability nullability,
 			PropertyData inferredData,
-			Map<String, IdentifierGeneratorDefinition> classGenerators,
 			EntityBinder entityBinder,
 			boolean isIdentifierMapper,
 			MetadataBuildingContext context,
@@ -358,9 +355,26 @@ public abstract class CollectionBinder {
 
 		if ( property.hasAnnotationUsage( CollectionId.class, sourceModelContext ) ) {
 			//do not compute the generators unless necessary
-			final HashMap<String, IdentifierGeneratorDefinition> localGenerators = new HashMap<>(classGenerators);
-			localGenerators.putAll( buildGenerators( property, context ) );
-			collectionBinder.setLocalGenerators( localGenerators );
+			final HashMap<String, IdentifierGeneratorDefinition> availableGenerators = new HashMap<>();
+			visitIdGeneratorDefinitions(
+					property.getDeclaringType(),
+					definition -> {
+						if ( !definition.getName().isEmpty() ) {
+							availableGenerators.put( definition.getName(), definition );
+						}
+					},
+					context
+			);
+			visitIdGeneratorDefinitions(
+					property,
+					definition -> {
+						if ( !definition.getName().isEmpty() ) {
+							availableGenerators.put( definition.getName(), definition );
+						}
+					},
+					context
+			);
+			collectionBinder.setLocalGenerators( availableGenerators );
 
 		}
 		collectionBinder.bind();
@@ -2059,6 +2073,7 @@ public abstract class CollectionBinder {
 				else {
 					key.setForeignKeyName( nullIfEmpty( foreignKey.name() ) );
 					key.setForeignKeyDefinition( nullIfEmpty( foreignKey.foreignKeyDefinition() ) );
+					key.setForeignKeyOptions( foreignKey.options() );
 					if ( key.getForeignKeyName() == null
 							&& key.getForeignKeyDefinition() == null
 							&& collectionTableAnn.joinColumns().length == 1 ) {
@@ -2066,6 +2081,7 @@ public abstract class CollectionBinder {
 						final ForeignKey nestedForeignKey = joinColumn.foreignKey();
 						key.setForeignKeyName( nullIfEmpty( nestedForeignKey.name() ) );
 						key.setForeignKeyDefinition( nullIfEmpty( nestedForeignKey.foreignKeyDefinition() ) );
+						key.setForeignKeyOptions( nestedForeignKey.options() );
 					}
 				}
 			}
@@ -2075,6 +2091,7 @@ public abstract class CollectionBinder {
 					final ForeignKey foreignKey = joinTableAnn.foreignKey();
 					String foreignKeyName = foreignKey.name();
 					String foreignKeyDefinition = foreignKey.foreignKeyDefinition();
+					String foreignKeyOptions = foreignKey.options();
 					ConstraintMode foreignKeyValue = foreignKey.value();
 					final JoinColumn[] joinColumnAnnotations = joinTableAnn.joinColumns();
 					if ( !ArrayHelper.isEmpty( joinColumnAnnotations ) ) {
@@ -2083,6 +2100,7 @@ public abstract class CollectionBinder {
 						if ( foreignKeyName.isEmpty() ) {
 							foreignKeyName = joinColumnForeignKey.name();
 							foreignKeyDefinition = joinColumnForeignKey.foreignKeyDefinition();
+							foreignKeyOptions = joinColumnForeignKey.options();
 						}
 						if ( foreignKeyValue != NO_CONSTRAINT ) {
 							foreignKeyValue = joinColumnForeignKey.value();
@@ -2095,6 +2113,7 @@ public abstract class CollectionBinder {
 					else {
 						key.setForeignKeyName( nullIfEmpty( foreignKeyName ) );
 						key.setForeignKeyDefinition( nullIfEmpty( foreignKeyDefinition ) );
+						key.setForeignKeyOptions( foreignKeyOptions );
 					}
 				}
 				else {
@@ -2139,6 +2158,7 @@ public abstract class CollectionBinder {
 		else {
 			key.setForeignKeyName( nullIfEmpty( foreignKey.name() ) );
 			key.setForeignKeyDefinition( nullIfEmpty( foreignKey.foreignKeyDefinition() ) );
+			key.setForeignKeyOptions( foreignKey.options() );
 		}
 	}
 
@@ -2409,6 +2429,7 @@ public abstract class CollectionBinder {
 			final ForeignKey inverseForeignKey = joinTableAnn.inverseForeignKey();
 			String foreignKeyName = inverseForeignKey.name();
 			String foreignKeyDefinition = inverseForeignKey.foreignKeyDefinition();
+			String foreignKeyOptions = inverseForeignKey.options();
 
 			final JoinColumn[] inverseJoinColumns = joinTableAnn.inverseJoinColumns();
 			if ( !ArrayHelper.isEmpty( inverseJoinColumns ) ) {
@@ -2417,6 +2438,7 @@ public abstract class CollectionBinder {
 					final ForeignKey inverseJoinColumnForeignKey = joinColumnAnn.foreignKey();
 					foreignKeyName = inverseJoinColumnForeignKey.name();
 					foreignKeyDefinition = inverseJoinColumnForeignKey.foreignKeyDefinition();
+					foreignKeyOptions = inverseJoinColumnForeignKey.options();
 				}
 			}
 
@@ -2429,6 +2451,7 @@ public abstract class CollectionBinder {
 			else {
 				element.setForeignKeyName( nullIfEmpty( foreignKeyName ) );
 				element.setForeignKeyDefinition( nullIfEmpty( foreignKeyDefinition ) );
+				element.setForeignKeyOptions( foreignKeyOptions );
 			}
 		}
 		return element;

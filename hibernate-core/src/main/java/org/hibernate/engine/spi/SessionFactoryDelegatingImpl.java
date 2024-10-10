@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.engine.spi;
 
@@ -40,8 +38,8 @@ import org.hibernate.engine.profile.FetchProfile;
 import org.hibernate.event.spi.EventEngine;
 import org.hibernate.graph.spi.RootGraphImplementor;
 import org.hibernate.internal.FastSessionServices;
+import org.hibernate.metamodel.MappingMetamodel;
 import org.hibernate.metamodel.model.domain.JpaMetamodel;
-import org.hibernate.metamodel.spi.MetamodelImplementor;
 import org.hibernate.metamodel.spi.RuntimeMetamodelsImplementor;
 import org.hibernate.proxy.EntityNotFoundDelegate;
 import org.hibernate.query.BindableType;
@@ -375,8 +373,8 @@ public class SessionFactoryDelegatingImpl implements SessionFactoryImplementor, 
 	}
 
 	@Override @Deprecated
-	public MetamodelImplementor getMetamodel() {
-		return delegate.getMetamodel();
+	public MappingMetamodel getMetamodel() {
+		return (MappingMetamodel) delegate.getMetamodel();
 	}
 
 	@Override

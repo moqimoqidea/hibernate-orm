@@ -33,9 +33,9 @@ apply plugin: 'org.hibernate.orm.build.java-module'
 
 apply plugin: 'org.checkerframework'
 apply plugin: 'de.thetaphi.forbiddenapis'
+apply plugin: 'com.diffplug.spotless'
 
 apply plugin: "jacoco"
-apply plugin: 'checkstyle'
 apply plugin: 'build-dashboard'
 apply plugin: 'project-report'
 
@@ -194,6 +194,7 @@ tasks.withType( JavaCompile ) {
 	]
 }
 
+tasks.compileJava.dependsOn spotlessApply
 
 task compile(dependsOn: [compileJava, processResources, compileTestJava, processTestResources] )
 
@@ -446,25 +447,73 @@ tasks.copyResourcesToIntelliJOutFolder.mustRunAfter processTestResources
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Report configs
 
-checkstyle {
-	it.sourceSets = [ project.sourceSets.main ]
-	configFile = rootProject.file( 'shared/config/checkstyle/checkstyle.xml' )
-	showViolations = false
+task enforceRules {
+	doLast {
+		def illegalImport = ~/^import (sun|java.awt|org.slf4j)/
+		def missingNewline = ~/^\s*}\s*(else|catch|finally)/
+		def lowerEll = ~/\b\d+l\b/
+		def equals = ~/boolean +equals\((@?\w+ )*Object \w+\)/
+		def hashCode = ~/int +hashCode\(\)/
+		def errors = 0
+		def tree = fileTree("src/main/java/")
+		tree.include "**/*.java"
+		tree.each { file ->
+			def lineNum = 0
+			def shortName = file.path.substring(rootDir.path.length())
+			def equalsMinusHashcode = 0
+			file.eachLine { line ->
+				lineNum++
+				if (line =~ illegalImport) {
+					errors++
+					logger.error("Illegal import in ${shortName}\n${lineNum}: ${line}")
+				}
+				if (line =~ missingNewline) {
+					errors++
+					logger.error("Missing newline in ${shortName}\n${lineNum}: ${line}")
+				}
+				if (line =~ lowerEll) {
+					errors++
+					logger.error("Lowercase long literal in ${shortName}\n${lineNum}: ${line}")
+				}
+				if (!line.startsWith("//")) { //ignore commented-out code
+					if (line =~ equals) {
+						equalsMinusHashcode ++
+					}
+					if (line =~ hashCode) {
+						equalsMinusHashcode --
+					}
+				}
+			}
+			if (equalsMinusHashcode>0) {
+				errors++
+				logger.error("Equals with missing hash code in ${shortName}")
+			}
+			if (equalsMinusHashcode<0) {
+				errors++
+				logger.error("Hash code with missing equals in ${shortName}")
+			}
+		}
+		if ( errors>0 ) {
+			throw new GradleException("Code rules were violated ($errors problems)")
+		}
+	}
 }
 
-// exclude generated java sources - by explicitly setting the base source dir
-tasks.checkstyleMain.source = 'src/main/java'
-tasks.checkstyleMain
-		.exclude('org/hibernate/processor/util/NullnessUtil.java')
-		.exclude('org/hibernate/internal/util/NullnessUtil.java')
-
-// define a second checkstyle task for checking non-fatal violations
-task nonFatalCheckstyle(type:Checkstyle) {
-	source = project.sourceSets.main.java
-	classpath = project.configurations.checkstyle
-	showViolations = false
-	configFile = rootProject.file( 'shared/config/checkstyle/checkstyle-non-fatal.xml' )
+spotless {
+	//Don't fail during the check: rather than enforcing guidelines, we use this plugin to fix mistakes automatically.
+	enforceCheck false
+	java {
+		targetExclude( "**/target/**/*.java" )
+		licenseHeaderFile rootProject.file( 'spotless.license.java' )
+		removeUnusedImports()
+		indentWithTabs( 4 )
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
 }
+
+tasks.spotlessApply.dependsOn enforceRules
+
 
 class CompilerStubsArgumentProvider implements CommandLineArgumentProvider {
 

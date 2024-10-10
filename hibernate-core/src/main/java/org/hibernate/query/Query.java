@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query;
 
@@ -851,8 +849,11 @@ public interface Query<R> extends SelectionQuery<R>, MutationQuery, TypedQuery<R
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// covariant overrides - CommonQueryContract
 
-	@Override
+	@Override @Deprecated(since = "7")
 	Query<R> setHibernateFlushMode(FlushMode flushMode);
+
+	@Override
+	Query<R> setQueryFlushMode(QueryFlushMode queryFlushMode);
 
 	@Override
 	Query<R> setCacheable(boolean cacheable);
@@ -914,7 +915,7 @@ public interface Query<R> extends SelectionQuery<R>, MutationQuery, TypedQuery<R
 	@Override
 	Query<R> disableFetchProfile(String profileName);
 
-	@Override
+	@Override @Deprecated(since = "7")
 	Query<R> setFlushMode(FlushModeType flushMode);
 
 	@Override

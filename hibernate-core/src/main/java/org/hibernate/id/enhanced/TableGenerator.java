@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.id.enhanced;
 
@@ -14,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
@@ -55,6 +54,7 @@ import org.hibernate.type.Type;
 import org.jboss.logging.Logger;
 
 import static java.util.Collections.singletonMap;
+import static org.hibernate.boot.model.internal.GeneratorBinder.applyIfNotEmpty;
 import static org.hibernate.id.IdentifierGeneratorHelper.getNamingStrategy;
 import static org.hibernate.id.enhanced.OptimizerFactory.determineImplicitOptimizerName;
 import static org.hibernate.internal.util.StringHelper.isEmpty;
@@ -225,6 +225,7 @@ public class TableGenerator implements PersistentIdentifierGenerator {
 	private String contributor;
 
 	private String options;
+
 	/**
 	 * Type mapping for the identifier.
 	 *
@@ -722,5 +723,28 @@ public class TableGenerator implements PersistentIdentifierGenerator {
 		selectQuery = buildSelectQuery( formattedPhysicalTableName, context );
 		updateQuery = buildUpdateQuery( formattedPhysicalTableName, context );
 		insertQuery = buildInsertQuery( formattedPhysicalTableName, context );
+	}
+
+	public static void applyConfiguration(
+			jakarta.persistence.TableGenerator generatorConfig,
+			BiConsumer<String, String> configurationCollector) {
+		configurationCollector.accept( CONFIG_PREFER_SEGMENT_PER_ENTITY, "true" );
+
+		applyIfNotEmpty( TABLE_PARAM, generatorConfig.table(), configurationCollector );
+		applyIfNotEmpty( CATALOG, generatorConfig.catalog(), configurationCollector );
+		applyIfNotEmpty( SCHEMA, generatorConfig.schema(), configurationCollector );
+		applyIfNotEmpty( OPTIONS, generatorConfig.options(), configurationCollector );
+
+		applyIfNotEmpty( SEGMENT_COLUMN_PARAM, generatorConfig.pkColumnName(), configurationCollector );
+		applyIfNotEmpty( SEGMENT_VALUE_PARAM, generatorConfig.pkColumnValue(), configurationCollector );
+		applyIfNotEmpty( VALUE_COLUMN_PARAM, generatorConfig.valueColumnName(), configurationCollector );
+
+		configurationCollector.accept( INITIAL_PARAM, Integer.toString( generatorConfig.initialValue() + 1 ) );
+		if ( generatorConfig.allocationSize() == 50 ) {
+			// don't do anything - assuming a proper default is already set
+		}
+		else {
+			configurationCollector.accept( INCREMENT_PARAM, Integer.toString( generatorConfig.allocationSize() ) );
+		}
 	}
 }

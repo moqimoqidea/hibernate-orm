@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.orm.test.id.enhanced;
 
@@ -26,6 +24,7 @@ import org.hibernate.id.enhanced.StandardNamingStrategy;
 import org.hibernate.mapping.KeyValue;
 import org.hibernate.mapping.PersistentClass;
 import org.hibernate.mapping.Table;
+import org.hibernate.orm.test.idgen.n_ative.GeneratorSettingsImpl;
 import org.hibernate.service.ServiceRegistry;
 
 import org.hibernate.testing.orm.junit.BaseUnitTest;
@@ -114,7 +113,7 @@ public class TableNamingStrategyTest {
 			assertThat( table ).isNotNull();
 
 			final PersistentClass entityBinding = metadata.getEntityBinding( entityType.getName() );
-			final IdentifierGenerator generator = extractGenerator( entityBinding );
+			final IdentifierGenerator generator = extractGenerator( entityBinding, metadata );
 			assertThat( generator ).isInstanceOf( org.hibernate.id.enhanced.TableGenerator.class );
 			final org.hibernate.id.enhanced.TableGenerator tableGenerator = (org.hibernate.id.enhanced.TableGenerator) generator;
 			assertThat( tableGenerator.getTableName() ).isEqualTo( expectedName );
@@ -141,9 +140,14 @@ public class TableNamingStrategyTest {
 		}
 	}
 
-	private IdentifierGenerator extractGenerator(PersistentClass entityBinding) {
+	private IdentifierGenerator extractGenerator(PersistentClass entityBinding, MetadataImplementor metadata) {
 		KeyValue keyValue = entityBinding.getIdentifier();
-		final Generator generator = keyValue.createGenerator(null, null);
+		final Generator generator = keyValue.createGenerator(
+				metadata.getDatabase().getDialect(),
+				entityBinding.getRootClass(),
+				entityBinding.getIdentifierProperty(),
+				new GeneratorSettingsImpl( metadata )
+		);
 		return generator instanceof IdentifierGenerator ? (IdentifierGenerator) generator : null;
 	}
 

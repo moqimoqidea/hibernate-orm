@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.resource.transaction.backend.jta.internal;
 
@@ -21,7 +19,6 @@ import org.hibernate.JDBCException;
 import org.hibernate.engine.jdbc.connections.spi.JdbcConnectionAccess;
 import org.hibernate.engine.jdbc.spi.SqlExceptionHelper;
 import org.hibernate.exception.internal.SQLStateConversionDelegate;
-import org.hibernate.exception.spi.SQLExceptionConversionDelegate;
 import org.hibernate.resource.jdbc.spi.JdbcSessionOwner;
 import org.hibernate.resource.transaction.spi.IsolationDelegate;
 import org.hibernate.internal.CoreLogging;
@@ -117,7 +114,9 @@ public class JtaIsolationDelegate implements IsolationDelegate {
 		try {
 			// First we suspend any current JTA transaction
 			final Transaction surroundingTransaction = transactionManager.suspend();
-			LOG.debugf( "Surrounding JTA transaction suspended [%s]", surroundingTransaction );
+			if ( surroundingTransaction != null ) {
+				LOG.debugf( "Surrounding JTA transaction suspended [%s]", surroundingTransaction );
+			}
 
 			try {
 				return callable.call();
@@ -127,8 +126,10 @@ public class JtaIsolationDelegate implements IsolationDelegate {
 			}
 			finally {
 				try {
-					transactionManager.resume( surroundingTransaction );
-					LOG.debugf( "Surrounding JTA transaction resumed [%s]", surroundingTransaction );
+					if ( surroundingTransaction != null ) {
+						transactionManager.resume( surroundingTransaction );
+						LOG.debugf( "Surrounding JTA transaction resumed [%s]", surroundingTransaction );
+					}
 				}
 				catch ( Throwable t2 ) {
 					// if the actually work had an error use that, otherwise error based on t

@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.models.annotations.internal;
 
@@ -43,7 +41,18 @@ public class TableGeneratorJpaAnnotation implements TableGenerator, UniqueConstr
 	 * Used in creating dynamic annotation instances (e.g. from XML)
 	 */
 	public TableGeneratorJpaAnnotation(SourceModelBuildingContext modelContext) {
-		this.name = "";
+		this( "", modelContext );
+	}
+
+	/**
+	 * Used in creating named, defaulted annotation instances.  Generally this
+	 * is a situation where we have:<ol>
+	 *     <li>{@linkplain jakarta.persistence.GeneratedValue#strategy()} set to {@linkplain jakarta.persistence.GenerationType#TABLE}</li>
+	 *     <li>{@linkplain jakarta.persistence.GeneratedValue#generator()} set to a non-empty String, but with no matching {@linkplain TableGenerator}</li>
+	 * </ol>
+	 */
+	public TableGeneratorJpaAnnotation(String name, SourceModelBuildingContext modelContext) {
+		this.name = name;
 		this.table = "";
 		this.catalog = "";
 		this.schema = "";

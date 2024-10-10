@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.sqm.tree.select;
 
@@ -168,7 +166,7 @@ public abstract class AbstractSqmSelectQuery<T>
 		return name;
 	}
 
-	private <X> JpaCteCriteria<X> withInternal(String name, AbstractQuery<X> criteria) {
+	protected <X> JpaCteCriteria<X> withInternal(String name, AbstractQuery<X> criteria) {
 		final SqmCteStatement<X> cteStatement = new SqmCteStatement<>(
 				name,
 				(SqmSelectQuery<X>) criteria,
@@ -181,7 +179,7 @@ public abstract class AbstractSqmSelectQuery<T>
 		return cteStatement;
 	}
 
-	private <X> JpaCteCriteria<X> withInternal(
+	protected <X> JpaCteCriteria<X> withInternal(
 			String name,
 			AbstractQuery<X> baseCriteria,
 			boolean unionDistinct,

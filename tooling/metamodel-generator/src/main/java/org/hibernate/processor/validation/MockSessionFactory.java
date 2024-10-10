@@ -1,11 +1,10 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.validation;
 
+import jakarta.persistence.metamodel.Bindable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hibernate.CustomEntityDirtinessStrategy;
 import org.hibernate.EntityNameResolver;
@@ -52,21 +51,28 @@ import org.hibernate.jpa.spi.MutableJpaCompliance;
 import org.hibernate.mapping.Property;
 import org.hibernate.metamodel.AttributeClassification;
 import org.hibernate.metamodel.CollectionClassification;
-import org.hibernate.metamodel.internal.JpaMetaModelPopulationSetting;
-import org.hibernate.metamodel.internal.JpaStaticMetaModelPopulationSetting;
+import org.hibernate.metamodel.internal.JpaMetamodelPopulationSetting;
+import org.hibernate.metamodel.internal.JpaStaticMetamodelPopulationSetting;
+import org.hibernate.metamodel.MappingMetamodel;
 import org.hibernate.metamodel.internal.MetadataContext;
 import org.hibernate.metamodel.internal.RuntimeMetamodelsImpl;
+import org.hibernate.metamodel.mapping.EntityIdentifierMapping;
 import org.hibernate.metamodel.mapping.JdbcMapping;
+import org.hibernate.metamodel.model.domain.BasicDomainType;
 import org.hibernate.metamodel.model.domain.DomainType;
+import org.hibernate.metamodel.model.domain.EmbeddableDomainType;
 import org.hibernate.metamodel.model.domain.EntityDomainType;
 import org.hibernate.metamodel.model.domain.JpaMetamodel;
 import org.hibernate.metamodel.model.domain.ManagedDomainType;
 import org.hibernate.metamodel.model.domain.PersistentAttribute;
+import org.hibernate.metamodel.model.domain.SingularPersistentAttribute;
 import org.hibernate.metamodel.model.domain.internal.AbstractAttribute;
 import org.hibernate.metamodel.model.domain.internal.AbstractPluralAttribute;
 import org.hibernate.metamodel.model.domain.internal.BagAttributeImpl;
+import org.hibernate.metamodel.model.domain.internal.BasicSqmPathSource;
 import org.hibernate.metamodel.model.domain.internal.BasicTypeImpl;
 import org.hibernate.metamodel.model.domain.internal.EmbeddableTypeImpl;
+import org.hibernate.metamodel.model.domain.internal.EmbeddedSqmPathSource;
 import org.hibernate.metamodel.model.domain.internal.EntityTypeImpl;
 import org.hibernate.metamodel.model.domain.internal.JpaMetamodelImpl;
 import org.hibernate.metamodel.model.domain.internal.ListAttributeImpl;
@@ -78,7 +84,6 @@ import org.hibernate.metamodel.model.domain.internal.SetAttributeImpl;
 import org.hibernate.metamodel.model.domain.internal.SingularAttributeImpl;
 import org.hibernate.metamodel.model.domain.spi.JpaMetamodelImplementor;
 import org.hibernate.metamodel.spi.MappingMetamodelImplementor;
-import org.hibernate.metamodel.spi.MetamodelImplementor;
 import org.hibernate.metamodel.spi.RuntimeMetamodelsImplementor;
 import org.hibernate.metamodel.spi.RuntimeModelCreationContext;
 import org.hibernate.persister.collection.CollectionPersister;
@@ -101,6 +106,7 @@ import org.hibernate.query.sqm.sql.StandardSqmTranslatorFactory;
 import org.hibernate.stat.internal.StatisticsImpl;
 import org.hibernate.stat.spi.StatisticsImplementor;
 import org.hibernate.type.BagType;
+import org.hibernate.type.BasicType;
 import org.hibernate.type.CollectionType;
 import org.hibernate.type.CompositeType;
 import org.hibernate.type.ListType;
@@ -139,9 +145,7 @@ public abstract class MockSessionFactory
 	private static final BasicTypeImpl<Object> OBJECT_BASIC_TYPE =
 			new BasicTypeImpl<>(new UnknownBasicJavaType<>(Object.class), ObjectJdbcType.INSTANCE);
 
-	// static so other things can get at it
-	// TODO: make a static instance of this whole object instead!
-	static TypeConfiguration typeConfiguration;
+	private final TypeConfiguration typeConfiguration;
 
 	private final Map<String,MockEntityPersister> entityPersistersByName = new HashMap<>();
 	private final Map<String,MockCollectionPersister> collectionPersistersByName = new HashMap<>();
@@ -211,8 +215,8 @@ public abstract class MockSessionFactory
 				metamodel.getJpaMetamodel(),
 				metamodel,
 				bootModel,
-				JpaStaticMetaModelPopulationSetting.DISABLED,
-				JpaMetaModelPopulationSetting.DISABLED,
+				JpaStaticMetamodelPopulationSetting.DISABLED,
+				JpaMetamodelPopulationSetting.DISABLED,
 				this
 		);
 
@@ -341,6 +345,12 @@ public abstract class MockSessionFactory
 				.getIdentifierType();
 	}
 
+	public BasicType<?> getVersionType(String className)
+			throws MappingException {
+		return createEntityPersister(className)
+				.getVersionType();
+	}
+
 	@Override
 	public String getIdentifierPropertyName(String className)
 			throws MappingException {
@@ -356,7 +366,7 @@ public abstract class MockSessionFactory
 	}
 
 	@Override
-	public MetamodelImplementor getMetamodel() {
+	public MappingMetamodel getMetamodel() {
 		return metamodel;
 	}
 
@@ -693,12 +703,6 @@ public abstract class MockSessionFactory
 		}
 
 		@Override
-		public EntityPersister entityPersister(String entityName)
-				throws MappingException {
-			return createEntityPersister(entityName);
-		}
-
-		@Override
 		public EntityPersister locateEntityPersister(String entityName)
 				throws MappingException {
 			return createEntityPersister(entityName);
@@ -711,11 +715,6 @@ public abstract class MockSessionFactory
 
 		@Override
 		public CollectionPersister findCollectionDescriptor(String role) {
-			return createCollectionPersister(role);
-		}
-
-		@Override
-		public CollectionPersister collectionPersister(String role) {
 			return createCollectionPersister(role);
 		}
 
@@ -916,8 +915,72 @@ public abstract class MockSessionFactory
 		}
 
 		@Override
+		public SingularPersistentAttribute<? super X, ?> findVersionAttribute() {
+			final BasicType<?> type = getVersionType(getHibernateEntityName());
+			if (type == null) {
+				return null;
+			}
+			else {
+				return new SingularAttributeImpl<>(
+						MockEntityDomainType.this,
+						"{version}",
+						AttributeClassification.BASIC,
+						type,
+						type.getRelationalJavaType(),
+						null,
+						false,
+						true,
+						false,
+						false,
+						metadataContext
+				);
+			}
+		}
+
+		@Override
+		public boolean hasVersionAttribute() {
+			return getVersionType(getHibernateEntityName()) != null;
+		}
+
+		@Override
+		public SqmPathSource<?> getIdentifierDescriptor() {
+			final Type type = getIdentifierType(getHibernateEntityName());
+			if (type == null) {
+				return null;
+			}
+			else if (type instanceof BasicDomainType) {
+				return new BasicSqmPathSource<>(
+						EntityIdentifierMapping.ID_ROLE_NAME,
+						null,
+						(BasicDomainType<?>) type,
+						MockEntityDomainType.this.getExpressibleJavaType(),
+						Bindable.BindableType.SINGULAR_ATTRIBUTE,
+						false
+				);
+			}
+			else if (type instanceof EmbeddableDomainType) {
+				return new EmbeddedSqmPathSource<>(
+						EntityIdentifierMapping.ID_ROLE_NAME,
+						null,
+						(EmbeddableDomainType<?>) type,
+						Bindable.BindableType.SINGULAR_ATTRIBUTE,
+						false
+				);
+			}
+			else {
+				return null;
+			}
+		}
+
+		@Override
 		public SqmPathSource<?> findSubPathSource(String name, JpaMetamodel metamodel) {
-			SqmPathSource<?> source = super.findSubPathSource(name, metamodel);
+			switch (name) {
+				case EntityIdentifierMapping.ID_ROLE_NAME:
+					return getIdentifierDescriptor();
+				case "{version}":
+					return findVersionAttribute();
+			}
+			final SqmPathSource<?> source = super.findSubPathSource(name, metamodel);
 			if ( source != null ) {
 				return source;
 			}

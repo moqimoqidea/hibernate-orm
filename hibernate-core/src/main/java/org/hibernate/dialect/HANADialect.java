@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.dialect;
 
@@ -170,7 +168,7 @@ import static org.hibernate.type.descriptor.DateTimeUtils.appendAsTimestampWithM
  */
 public class HANADialect extends Dialect {
 
-	static final DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make( 1, 0, 120 );
+	static final DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make( 2, 0, 50 );
 
 	public HANADialect(DialectResolutionInfo info) {
 		this( HANAServerConfiguration.fromDialectResolutionInfo( info ), true );
@@ -178,7 +176,7 @@ public class HANADialect extends Dialect {
 	}
 
 	public HANADialect() {
-		// SAP HANA 1.0 SPS12 R0 is the default
+		// SAP HANA 2.0 SPS 05 is the default
 		this( MINIMUM_VERSION );
 	}
 
@@ -394,6 +392,7 @@ public class HANADialect extends Dialect {
 		return 7;
 	}
 
+	@Override
 	public int getDefaultDecimalPrecision() {
 		//the maximum on HANA
 		return 34;
@@ -490,6 +489,16 @@ public class HANADialect extends Dialect {
 				ANY, ANY, ANY,
 				typeConfiguration
 		);
+
+		// Introduced in 2.0 SPS 02
+		functionFactory.jsonValue_no_passing();
+		functionFactory.jsonQuery_no_passing();
+		functionFactory.jsonExists_hana();
+		// Introduced in 2.0 SPS 04
+		functionFactory.jsonObject_hana();
+		functionFactory.jsonArray_hana();
+		functionFactory.jsonArrayAgg_hana();
+		functionFactory.jsonObjectAgg_hana();
 	}
 
 	@Override
@@ -1118,7 +1127,7 @@ public class HANADialect extends Dialect {
 
 	@Override
 	public boolean supportsLateral() {
-		return getVersion().isSameOrAfter( 2, 0, 40 );
+		return true;
 	}
 
 	@Override
@@ -1980,7 +1989,7 @@ public class HANADialect extends Dialect {
 	@Override
 	public boolean supportsSkipLocked() {
 		// HANA supports IGNORE LOCKED since HANA 2.0 SPS3 (2.0.030)
-		return getVersion().isSameOrAfter(2, 0, 30);
+		return true;
 	}
 
 	@Override
@@ -1997,5 +2006,15 @@ public class HANADialect extends Dialect {
 	@Override
 	public String getForUpdateString(LockMode lockMode) {
 		return super.getForUpdateString(lockMode);
+	}
+
+	@Override
+	public String getDual() {
+		return "sys.dummy";
+	}
+
+	@Override
+	public String getFromDualForSelectOnly() {
+		return " from " + getDual();
 	}
 }

@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.criteria;
 
@@ -646,7 +644,7 @@ public interface HibernateCriteriaBuilder extends CriteriaBuilder {
 	 * @param <T> the type of each argument to the parameter
 	 * @since 7.0
 	 */
-	<T> JpaParameterExpression<List<T>> parameterList(Class<T> paramClass);
+	<T> JpaParameterExpression<List<T>> listParameter(Class<T> paramClass);
 
 	/**
 	 * Create a multivalued parameter accepting multiple arguments
@@ -656,7 +654,7 @@ public interface HibernateCriteriaBuilder extends CriteriaBuilder {
 	 * @param <T> the type of each argument to the parameter
 	 * @since 7.0
 	 */
-	<T> JpaParameterExpression<List<T>> parameterList(Class<T> paramClass, String name);
+	<T> JpaParameterExpression<List<T>> listParameter(Class<T> paramClass, String name);
 
 	@Override
 	JpaExpression<String> concat(Expression<String> x, Expression<String> y);
@@ -3682,6 +3680,518 @@ public interface HibernateCriteriaBuilder extends CriteriaBuilder {
 	@Incubating
 	<E> JpaPredicate collectionIntersectsNullable(Collection<E> collection1, Expression<? extends Collection<? extends E>> collectionExpression2);
 
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	// JSON functions
+
+	/**
+	 * @see #jsonValue(Expression, String, Class)
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaJsonValueExpression<String> jsonValue(Expression<?> jsonDocument, String jsonPath);
+
+	/**
+	 * Extracts a value by JSON path from a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	<T> JpaJsonValueExpression<T> jsonValue(Expression<?> jsonDocument, String jsonPath, Class<T> returningType);
+
+	/**
+	 * @see #jsonValue(Expression, Expression, Class)
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaJsonValueExpression<String> jsonValue(Expression<?> jsonDocument, Expression<String> jsonPath);
+
+	/**
+	 * Extracts a value by JSON path from a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	<T> JpaJsonValueExpression<T> jsonValue(Expression<?> jsonDocument, Expression<String> jsonPath, Class<T> returningType);
+
+	/**
+	 * @see #jsonQuery(Expression, Expression)
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaJsonQueryExpression jsonQuery(Expression<?> jsonDocument, String jsonPath);
+
+	/**
+	 * Queries values by JSON path from a JSON document.
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaJsonQueryExpression jsonQuery(Expression<?> jsonDocument, Expression<String> jsonPath);
+
+	/**
+	 * Checks if a JSON document contains a node for the given JSON path.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaJsonExistsExpression jsonExists(Expression<?> jsonDocument, String jsonPath);
+
+	/**
+	 * Checks if a JSON document contains a node for the given JSON path.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaJsonExistsExpression jsonExists(Expression<?> jsonDocument, Expression<String> jsonPath);
+
+	/**
+	 * Create a JSON object from the given map of key values.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObject(Map<?, ? extends Expression<?>> keyValues);
+
+	/**
+	 * Create a JSON object from the given map of key values, retaining {@code null} values in the JSON.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectWithNulls(Map<?, ? extends Expression<?>> keyValues);
+
+	/**
+	 * Create a JSON array from the array of values.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArray(Expression<?>... values);
+
+	/**
+	 * Create a JSON object from the given array of values, retaining {@code null} values in the JSON array.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayWithNulls(Expression<?>... values);
+
+	/**
+	 * Aggregates the given value into a JSON array.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayAgg(Expression<?> value);
+
+	/**
+	 * Aggregates the given value into a JSON array.
+	 * Ordering values based on the given order by items.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayAgg(Expression<?> value, JpaOrder... orderBy);
+
+	/**
+	 * Aggregates the given value into a JSON array.
+	 * Filtering rows that don't match the given filter predicate.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayAgg(Expression<?> value, Predicate filter);
+
+	/**
+	 * Aggregates the given value into a JSON array.
+	 * Filtering rows that don't match the given filter predicate.
+	 * Ordering values based on the given order by items.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayAgg(Expression<?> value, Predicate filter, JpaOrder... orderBy);
+
+	/**
+	 * Aggregates the given value into a JSON array, retaining {@code null} values in the JSON array.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayAggWithNulls(Expression<?> value);
+
+	/**
+	 * Aggregates the given value into a JSON array, retaining {@code null} values in the JSON array.
+	 * Ordering values based on the given order by items.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayAggWithNulls(Expression<?> value, JpaOrder... orderBy);
+
+	/**
+	 * Aggregates the given value into a JSON array, retaining {@code null} values in the JSON array.
+	 * Filtering rows that don't match the given filter predicate.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayAggWithNulls(Expression<?> value, Predicate filter);
+
+	/**
+	 * Aggregates the given value into a JSON array, retaining {@code null} values in the JSON array.
+	 * Filtering rows that don't match the given filter predicate.
+	 * Ordering values based on the given order by items.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonArrayAggWithNulls(Expression<?> value, Predicate filter, JpaOrder... orderBy);
+
+	/**
+	 * Aggregates the given value under the given key into a JSON object.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectAgg(Expression<?> key, Expression<?> value);
+
+	/**
+	 * Aggregates the given value under the given key into a JSON object, retaining {@code null} values in the JSON object.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectAggWithNulls(Expression<?> key, Expression<?> value);
+
+	/**
+	 * Aggregates the given value under the given key into a JSON object.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectAggWithUniqueKeys(Expression<?> key, Expression<?> value);
+
+	/**
+	 * Aggregates the given value under the given key into a JSON object, retaining {@code null} values in the JSON object.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectAggWithUniqueKeysAndNulls(Expression<?> key, Expression<?> value);
+
+	/**
+	 * Aggregates the given value under the given key into a JSON object.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectAgg(Expression<?> key, Expression<?> value, Predicate filter);
+
+	/**
+	 * Aggregates the given value under the given key into a JSON object, retaining {@code null} values in the JSON object.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectAggWithNulls(Expression<?> key, Expression<?> value, Predicate filter);
+
+	/**
+	 * Aggregates the given value under the given key into a JSON object.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectAggWithUniqueKeys(Expression<?> key, Expression<?> value, Predicate filter);
+
+	/**
+	 * Aggregates the given value under the given key into a JSON object, retaining {@code null} values in the JSON object.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonObjectAggWithUniqueKeysAndNulls(Expression<?> key, Expression<?> value, Predicate filter);
+
+	/**
+	 * Inserts/Replaces a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonSet(Expression<?> jsonDocument, String jsonPath, Expression<?> value);
+
+	/**
+	 * Inserts/Replaces a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonSet(Expression<?> jsonDocument, Expression<String> jsonPath, Expression<?> value);
+
+	/**
+	 * Inserts/Replaces a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonSet(Expression<?> jsonDocument, String jsonPath, Object value);
+
+	/**
+	 * Inserts/Replaces a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonSet(Expression<?> jsonDocument, Expression<String> jsonPath, Object value);
+
+	/**
+	 * Removes a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonRemove(Expression<?> jsonDocument, String jsonPath);
+
+	/**
+	 * Removes a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonRemove(Expression<?> jsonDocument, Expression<String> jsonPath);
+
+	/**
+	 * Inserts a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonInsert(Expression<?> jsonDocument, String jsonPath, Expression<?> value);
+
+	/**
+	 * Inserts a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonInsert(Expression<?> jsonDocument, Expression<String> jsonPath, Expression<?> value);
+
+	/**
+	 * Inserts a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonInsert(Expression<?> jsonDocument, String jsonPath, Object value);
+
+	/**
+	 * Inserts a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonInsert(Expression<?> jsonDocument, Expression<String> jsonPath, Object value);
+
+	/**
+	 * Replaces a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonReplace(Expression<?> jsonDocument, String jsonPath, Expression<?> value);
+
+	/**
+	 * Replaces a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonReplace(Expression<?> jsonDocument, Expression<String> jsonPath, Expression<?> value);
+
+	/**
+	 * Replaces a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonReplace(Expression<?> jsonDocument, String jsonPath, Object value);
+
+	/**
+	 * Replaces a value by JSON path within a JSON document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonReplace(Expression<?> jsonDocument, Expression<String> jsonPath, Object value);
+
+	/**
+	 * Applies the patch JSON document onto the other JSON document and returns that.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonMergepatch(Expression<?> document, Expression<?> patch);
+
+	/**
+	 * Applies the patch JSON document onto the other JSON document and returns that.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonMergepatch(Expression<?> document, String patch);
+
+	/**
+	 * Applies the patch JSON document onto the other JSON document and returns that.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> jsonMergepatch(String document, Expression<?> patch);
+
+	/**
+	 * Creates an XML element with the given element name.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaXmlElementExpression xmlelement(String elementName);
+
+	/**
+	 * Creates an XML comment with the given argument as content.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> xmlcomment(String comment);
+
+	/**
+	 * Creates an XML forest from the given XML element expressions.
+	 *
+	 * @since 7.0
+	 * @see #named(Expression, String)
+	 */
+	@Incubating
+	JpaExpression<String> xmlforest(Expression<?>... elements);
+
+	/**
+	 * Creates an XML forest from the given XML element expressions.
+	 *
+	 * @since 7.0
+	 * @see #named(Expression, String)
+	 */
+	@Incubating
+	JpaExpression<String> xmlforest(List<? extends Expression<?>> elements);
+
+	/**
+	 * Concatenates the given XML element expressions.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> xmlconcat(Expression<?>... elements);
+
+	/**
+	 * Concatenates the given XML element expressions.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> xmlconcat(List<? extends Expression<?>> elements);
+
+	/**
+	 * Creates an XML processing with the given name.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> xmlpi(String elementName);
+
+	/**
+	 * Creates an XML processing with the given name and content.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> xmlpi(String elementName, Expression<String> content);
+
+	/**
+	 * Queries the given XML document with the given XPath or XQuery query.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> xmlquery(String query, Expression<?> xmlDocument);
+
+	/**
+	 * Queries the given XML document with the given XPath or XQuery query.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<String> xmlquery(Expression<String> query, Expression<?> xmlDocument);
+
+	/**
+	 * Checks if the given XPath or XQuery query exists in the given XML document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<Boolean> xmlexists(String query, Expression<?> xmlDocument);
+
+	/**
+	 * Checks if the given XPath or XQuery query exists in the given XML document.
+	 *
+	 * @since 7.0
+	 */
+	@Incubating
+	JpaExpression<Boolean> xmlexists(Expression<String> query, Expression<?> xmlDocument);
+
+	/**
+	 * @see #xmlagg(JpaOrder, JpaPredicate, JpaWindow, Expression)
+	 */
+	@Incubating
+	JpaExpression<String> xmlagg(JpaOrder order, Expression<?> argument);
+
+	/**
+	 * @see #xmlagg(JpaOrder, JpaPredicate, JpaWindow, Expression)
+	 */
+	@Incubating
+	JpaExpression<String> xmlagg(JpaOrder order, JpaPredicate filter, Expression<?> argument);
+
+	/**
+	 * @see #xmlagg(JpaOrder, JpaPredicate, JpaWindow, Expression)
+	 */
+	@Incubating
+	JpaExpression<String> xmlagg(JpaOrder order, JpaWindow window, Expression<?> argument);
+
+	/**
+	 * Create a {@code xmlagg} ordered set-aggregate function expression.
+	 *
+	 * @param order order by clause used in within group
+	 * @param filter optional filter clause
+	 * @param window optional window over which to apply the function
+	 * @param argument values to join
+	 *
+	 * @return ordered set-aggregate expression
+	 *
+	 * @see #functionWithinGroup(String, Class, JpaOrder, JpaPredicate, JpaWindow, Expression...)
+	 */
+	@Incubating
+	JpaExpression<String> xmlagg(
+			JpaOrder order,
+			JpaPredicate filter,
+			JpaWindow window,
+			Expression<?> argument);
+
+	/**
+	 * Creates a named expression. The name is important for the result of the expression,
+	 * e.g. when building an {@code xmlforest}, the name acts as the XML element name.
+	 *
+	 * @since 7.0
+	 * @see #xmlforest(Expression[])
+	 * @see #xmlforest(List)
+	 */
+	@Incubating
+	<T> JpaExpression<T> named(Expression<T> expression, String name);
 
 	@Override
 	JpaPredicate and(List<Predicate> restrictions);

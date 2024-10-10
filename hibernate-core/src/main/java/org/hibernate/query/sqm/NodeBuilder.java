@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.sqm;
 
@@ -17,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.hibernate.Internal;
 import org.hibernate.jpa.spi.JpaCompliance;
 import org.hibernate.metamodel.model.domain.JpaMetamodel;
 import org.hibernate.query.ImmutableEntityUpdateQueryHandlingMode;
@@ -35,7 +32,6 @@ import org.hibernate.query.criteria.JpaSearchedCase;
 import org.hibernate.query.criteria.JpaSelection;
 import org.hibernate.query.criteria.JpaSimpleCase;
 import org.hibernate.query.criteria.JpaWindow;
-import org.hibernate.query.criteria.ValueHandlingMode;
 import org.hibernate.query.spi.QueryEngine;
 import org.hibernate.query.sqm.tree.delete.SqmDeleteStatement;
 import org.hibernate.query.sqm.tree.domain.SqmBagJoin;
@@ -46,8 +42,12 @@ import org.hibernate.query.sqm.tree.domain.SqmSetJoin;
 import org.hibernate.query.sqm.tree.domain.SqmSingularJoin;
 import org.hibernate.query.sqm.tree.expression.SqmExpression;
 import org.hibernate.query.sqm.tree.expression.SqmFunction;
+import org.hibernate.query.sqm.tree.expression.SqmJsonExistsExpression;
+import org.hibernate.query.sqm.tree.expression.SqmJsonQueryExpression;
+import org.hibernate.query.sqm.tree.expression.SqmJsonValueExpression;
 import org.hibernate.query.sqm.tree.expression.SqmModifiedSubQueryExpression;
 import org.hibernate.query.sqm.tree.expression.SqmTuple;
+import org.hibernate.query.sqm.tree.expression.SqmXmlElementExpression;
 import org.hibernate.query.sqm.tree.from.SqmRoot;
 import org.hibernate.query.sqm.tree.insert.SqmInsertSelectStatement;
 import org.hibernate.query.sqm.tree.insert.SqmInsertValuesStatement;
@@ -89,9 +89,6 @@ public interface NodeBuilder extends HibernateCriteriaBuilder, BindingContext {
 	boolean isJpaQueryComplianceEnabled();
 
 	QueryEngine getQueryEngine();
-
-	@Internal
-	ValueHandlingMode setCriteriaValueHandlingMode(ValueHandlingMode criteriaValueHandlingMode);
 
 	<R> SqmTuple<R> tuple(
 			Class<R> tupleType,
@@ -614,6 +611,195 @@ public interface NodeBuilder extends HibernateCriteriaBuilder, BindingContext {
 
 	@Override
 	<E> SqmPredicate collectionIntersectsNullable(Collection<E> collection1, Expression<? extends Collection<? extends E>> collectionExpression2);
+
+	@Override
+	<T> SqmJsonValueExpression<T> jsonValue(
+			Expression<?> jsonDocument,
+			Expression<String> jsonPath,
+			Class<T> returningType);
+
+	@Override
+	SqmJsonValueExpression<String> jsonValue(Expression<?> jsonDocument, Expression<String> jsonPath);
+
+	@Override
+	<T> SqmJsonValueExpression<T> jsonValue(Expression<?> jsonDocument, String jsonPath, Class<T> returningType);
+
+	@Override
+	SqmJsonValueExpression<String> jsonValue(Expression<?> jsonDocument, String jsonPath);
+
+	@Override
+	SqmJsonQueryExpression jsonQuery(Expression<?> jsonDocument, Expression<String> jsonPath);
+
+	@Override
+	SqmJsonQueryExpression jsonQuery(Expression<?> jsonDocument, String jsonPath);
+
+	@Override
+	SqmJsonExistsExpression jsonExists(Expression<?> jsonDocument, Expression<String> jsonPath);
+
+	@Override
+	SqmJsonExistsExpression jsonExists(Expression<?> jsonDocument, String jsonPath);
+
+	@Override
+	SqmExpression<String> jsonArrayWithNulls(Expression<?>... values);
+
+	@Override
+	SqmExpression<String> jsonArray(Expression<?>... values);
+
+	@Override
+	SqmExpression<String> jsonObjectWithNulls(Map<?, ? extends Expression<?>> keyValues);
+
+	@Override
+	SqmExpression<String> jsonObject(Map<?, ? extends Expression<?>> keyValues);
+
+	@Override
+	SqmExpression<String> jsonArrayAgg(Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonArrayAggWithNulls(Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonArrayAggWithNulls(Expression<?> value, Predicate filter, JpaOrder... orderBy);
+
+	@Override
+	SqmExpression<String> jsonArrayAggWithNulls(Expression<?> value, Predicate filter);
+
+	@Override
+	SqmExpression<String> jsonArrayAggWithNulls(Expression<?> value, JpaOrder... orderBy);
+
+	@Override
+	SqmExpression<String> jsonArrayAgg(Expression<?> value, Predicate filter, JpaOrder... orderBy);
+
+	@Override
+	SqmExpression<String> jsonArrayAgg(Expression<?> value, Predicate filter);
+
+	@Override
+	SqmExpression<String> jsonArrayAgg(Expression<?> value, JpaOrder... orderBy);
+
+	@Override
+	SqmExpression<String> jsonObjectAggWithUniqueKeysAndNulls(Expression<?> key, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonObjectAggWithUniqueKeys(Expression<?> key, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonObjectAggWithNulls(Expression<?> key, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonObjectAgg(Expression<?> key, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonObjectAggWithUniqueKeysAndNulls(Expression<?> key, Expression<?> value, Predicate filter);
+
+	@Override
+	SqmExpression<String> jsonObjectAggWithUniqueKeys(Expression<?> key, Expression<?> value, Predicate filter);
+
+	@Override
+	SqmExpression<String> jsonObjectAggWithNulls(Expression<?> key, Expression<?> value, Predicate filter);
+
+	@Override
+	SqmExpression<String> jsonObjectAgg(Expression<?> key, Expression<?> value, Predicate filter);
+
+	@Override
+	SqmExpression<String> jsonSet(Expression<?> jsonDocument, Expression<String> jsonPath, Object value);
+
+	@Override
+	SqmExpression<String> jsonSet(Expression<?> jsonDocument, String jsonPath, Object value);
+
+	@Override
+	SqmExpression<String> jsonSet(Expression<?> jsonDocument, Expression<String> jsonPath, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonSet(Expression<?> jsonDocument, String jsonPath, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonRemove(Expression<?> jsonDocument, String jsonPath);
+
+	@Override
+	SqmExpression<String> jsonRemove(Expression<?> jsonDocument, Expression<String> jsonPath);
+
+	@Override
+	SqmExpression<String> jsonInsert(Expression<?> jsonDocument, Expression<String> jsonPath, Object value);
+
+	@Override
+	SqmExpression<String> jsonInsert(Expression<?> jsonDocument, String jsonPath, Object value);
+
+	@Override
+	SqmExpression<String> jsonInsert(Expression<?> jsonDocument, Expression<String> jsonPath, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonInsert(Expression<?> jsonDocument, String jsonPath, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonReplace(Expression<?> jsonDocument, Expression<String> jsonPath, Object value);
+
+	@Override
+	SqmExpression<String> jsonReplace(Expression<?> jsonDocument, String jsonPath, Object value);
+
+	@Override
+	SqmExpression<String> jsonReplace(Expression<?> jsonDocument, Expression<String> jsonPath, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonReplace(Expression<?> jsonDocument, String jsonPath, Expression<?> value);
+
+	@Override
+	SqmExpression<String> jsonMergepatch(String document, Expression<?> patch);
+
+	@Override
+	SqmExpression<String> jsonMergepatch(Expression<?> document, String patch);
+
+	@Override
+	SqmExpression<String> jsonMergepatch(Expression<?> document, Expression<?> patch);
+
+	@Override
+	SqmXmlElementExpression xmlelement(String elementName);
+
+	@Override
+	SqmExpression<String> xmlcomment(String comment);
+
+	@Override
+	<T> SqmExpression<T> named(Expression<T> expression, String name);
+
+	@Override
+	SqmExpression<String> xmlforest(List<? extends Expression<?>> elements);
+
+	@Override
+	SqmExpression<String> xmlforest(Expression<?>... elements);
+
+	@Override
+	SqmExpression<String> xmlconcat(Expression<?>... elements);
+
+	@Override
+	SqmExpression<String> xmlconcat(List<? extends Expression<?>> elements);
+
+	@Override
+	SqmExpression<String> xmlpi(String elementName);
+
+	@Override
+	SqmExpression<String> xmlpi(String elementName, Expression<String> content);
+
+	@Override
+	SqmExpression<String> xmlquery(String query, Expression<?> xmlDocument);
+
+	@Override
+	SqmExpression<String> xmlquery(Expression<String> query, Expression<?> xmlDocument);
+
+	@Override
+	SqmExpression<Boolean> xmlexists(String query, Expression<?> xmlDocument);
+
+	@Override
+	SqmExpression<Boolean> xmlexists(Expression<String> query, Expression<?> xmlDocument);
+
+	@Override
+	SqmExpression<String> xmlagg(JpaOrder order, Expression<?> argument);
+
+	@Override
+	SqmExpression<String> xmlagg(JpaOrder order, JpaPredicate filter, Expression<?> argument);
+
+	@Override
+	SqmExpression<String> xmlagg(JpaOrder order, JpaWindow window, Expression<?> argument);
+
+	@Override
+	SqmExpression<String> xmlagg(JpaOrder order, JpaPredicate filter, JpaWindow window, Expression<?> argument);
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Covariant overrides

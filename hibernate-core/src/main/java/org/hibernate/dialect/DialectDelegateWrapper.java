@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.dialect;
 
@@ -49,10 +47,10 @@ import org.hibernate.exception.spi.SQLExceptionConversionDelegate;
 import org.hibernate.exception.spi.ViolatedConstraintNameExtractor;
 import org.hibernate.loader.ast.spi.MultiKeyLoadSizingStrategy;
 import org.hibernate.mapping.Column;
-import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
 import org.hibernate.mapping.Table;
+import org.hibernate.mapping.UniqueKey;
 import org.hibernate.mapping.UserDefinedType;
 import org.hibernate.metamodel.mapping.EntityMappingType;
 import org.hibernate.metamodel.spi.RuntimeModelCreationContext;
@@ -89,6 +87,7 @@ import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.descriptor.jdbc.spi.JdbcTypeRegistry;
 import org.hibernate.type.spi.TypeConfiguration;
 
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.TemporalType;
 
 /**
@@ -124,7 +123,7 @@ public class DialectDelegateWrapper extends Dialect {
 		}
 	}
 
-    /**
+	/**
 	 * Exposed so to allow code needing to know the implementation.
 	 * @return the wrapped Dialect
 	 */
@@ -351,8 +350,8 @@ public class DialectDelegateWrapper extends Dialect {
 	}
 
 	@Override
-	public String getNativeIdentifierGeneratorStrategy() {
-		return wrapped.getNativeIdentifierGeneratorStrategy();
+	public GenerationType getNativeValueGenerationStrategy() {
+		return wrapped.getNativeValueGenerationStrategy();
 	}
 
 	@Override
@@ -866,7 +865,7 @@ public class DialectDelegateWrapper extends Dialect {
 	}
 
 	@Override
-	public Exporter<Constraint> getUniqueKeyExporter() {
+	public Exporter<UniqueKey> getUniqueKeyExporter() {
 		return wrapped.getUniqueKeyExporter();
 	}
 

@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.dialect;
 
@@ -70,6 +68,7 @@ import org.hibernate.dialect.function.LocatePositionEmulation;
 import org.hibernate.dialect.function.LpadRpadPadEmulation;
 import org.hibernate.dialect.function.SqlFunction;
 import org.hibernate.dialect.function.TrimFunction;
+import org.hibernate.dialect.function.OrdinalFunction;
 import org.hibernate.dialect.identity.IdentityColumnSupport;
 import org.hibernate.dialect.identity.IdentityColumnSupportImpl;
 import org.hibernate.dialect.lock.LockingStrategy;
@@ -112,10 +111,10 @@ import org.hibernate.internal.util.collections.ArrayHelper;
 import org.hibernate.loader.ast.spi.MultiKeyLoadSizingStrategy;
 import org.hibernate.mapping.CheckConstraint;
 import org.hibernate.mapping.Column;
-import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
 import org.hibernate.mapping.Table;
+import org.hibernate.mapping.UniqueKey;
 import org.hibernate.mapping.UserDefinedType;
 import org.hibernate.metamodel.mapping.EntityMappingType;
 import org.hibernate.metamodel.spi.RuntimeModelCreationContext;
@@ -198,6 +197,7 @@ import org.hibernate.type.spi.TypeConfiguration;
 
 import org.jboss.logging.Logger;
 
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.TemporalType;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -1228,6 +1228,11 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 		functionContributions.getFunctionRegistry().register( "str",
 				new CastStrEmulation( typeConfiguration ) );
 
+		// Function to convert enum mapped as Ordinal to their ordinal value
+
+		functionContributions.getFunctionRegistry().register( "ordinal",
+				new OrdinalFunction( typeConfiguration ) );
+
 		//format() function for datetimes, emulated on many databases using the
 		//Oracle-style to_char() function, and on others using their native
 		//formatting functions
@@ -1457,7 +1462,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 			case INTEGER_BOOLEAN:
 				switch ( from ) {
 					case STRING:
-						return "case ?1 when 'T' then 1 when 'Y' then 1 when 'F' then 0 when 'N' then 0 else null end";
+						return buildStringToBooleanCast( "1", "0" );
 					case INTEGER:
 					case LONG:
 						return "abs(sign(?1))";
@@ -1472,7 +1477,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 			case YN_BOOLEAN:
 				switch ( from ) {
 					case STRING:
-						return "case ?1 when 'T' then 'Y' when 'Y' then 'Y' when 'F' then 'N' when 'N' then 'N' else null end";
+						return buildStringToBooleanCast( "'Y'", "'N'" );
 					case INTEGER_BOOLEAN:
 						return "case ?1 when 1 then 'Y' when 0 then 'N' else null end";
 					case INTEGER:
@@ -1487,7 +1492,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 			case TF_BOOLEAN:
 				switch ( from ) {
 					case STRING:
-						return "case ?1 when 'T' then 'T' when 'Y' then 'T' when 'F' then 'F' when 'N' then 'F' else null end";
+						return buildStringToBooleanCast( "'T'", "'F'" );
 					case INTEGER_BOOLEAN:
 						return "case ?1 when 1 then 'T' when 0 then 'F' else null end";
 					case INTEGER:
@@ -1502,7 +1507,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 			case BOOLEAN:
 				switch ( from ) {
 					case STRING:
-						return "case ?1 when 'T' then true when 'Y' then true when 'F' then false when 'N' then false else null end";
+						return buildStringToBooleanCast( "true", "false" );
 					case INTEGER_BOOLEAN:
 					case INTEGER:
 					case LONG:
@@ -1515,6 +1520,153 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 				break;
 		}
 		return "cast(?1 as ?2)";
+	}
+
+	protected static final String[] TRUE_STRING_VALUES = new String[] { "t", "true", "y", "1" };
+	protected static final String[] FALSE_STRING_VALUES = new String[] { "f", "false", "n", "0" };
+
+	protected String buildStringToBooleanCast(String trueValue, String falseValue) {
+		final boolean supportsValuesList = supportsValuesList();
+		final StringBuilder sb = new StringBuilder();
+		sb.append( "(select v.x from (" );
+		if ( supportsValuesList ) {
+			sb.append( "values (" );
+			sb.append( trueValue );
+			sb.append( "),(" );
+			sb.append( falseValue );
+			sb.append( ")) v(x)" );
+		}
+		else {
+			sb.append( "select " );
+			sb.append( trueValue );
+			sb.append( " x");
+			sb.append( getFromDualForSelectOnly() );
+			sb.append(" union all select " );
+			sb.append( falseValue );
+			sb.append( getFromDualForSelectOnly() );
+			sb.append( ") v" );
+		}
+		sb.append( " left join (" );
+		if ( supportsValuesList ) {
+			sb.append( "values" );
+			char separator = ' ';
+			for ( String trueStringValue : Dialect.TRUE_STRING_VALUES ) {
+				sb.append( separator );
+				sb.append( "('" );
+				sb.append( trueStringValue );
+				sb.append( "'," );
+				sb.append( trueValue );
+				sb.append( ')' );
+				separator = ',';
+			}
+			for ( String falseStringValue : Dialect.FALSE_STRING_VALUES ) {
+				sb.append( ",('" );
+				sb.append( falseStringValue );
+				sb.append( "'," );
+				sb.append( falseValue );
+				sb.append( ')' );
+			}
+			sb.append( ") t(k,v)" );
+		}
+		else {
+			sb.append( "select '" );
+			sb.append( Dialect.TRUE_STRING_VALUES[0] );
+			sb.append( "' k," );
+			sb.append( trueValue );
+			sb.append( " v" );
+			sb.append( getFromDualForSelectOnly() );
+			for ( int i = 1; i < Dialect.TRUE_STRING_VALUES.length; i++ ) {
+				sb.append( " union all select '" );
+				sb.append( Dialect.TRUE_STRING_VALUES[i] );
+				sb.append( "'," );
+				sb.append( trueValue );
+				sb.append( getFromDualForSelectOnly() );
+			}
+			for ( String falseStringValue : Dialect.FALSE_STRING_VALUES ) {
+				sb.append( " union all select '" );
+				sb.append( falseStringValue );
+				sb.append( "'," );
+				sb.append( falseValue );
+				sb.append( getFromDualForSelectOnly() );
+			}
+			sb.append( ") t" );
+		}
+		sb.append( " on " );
+		sb.append( getLowercaseFunction() );
+		sb.append( "(?1)=t.k where t.v is null or v.x=t.v)" );
+		return sb.toString();
+	}
+
+	protected String buildStringToBooleanCastDecode(String trueValue, String falseValue) {
+		final boolean supportsValuesList = supportsValuesList();
+		final StringBuilder sb = new StringBuilder();
+		sb.append( "(select v.x from (" );
+		if ( supportsValuesList ) {
+			sb.append( "values (" );
+			sb.append( trueValue );
+			sb.append( "),(" );
+			sb.append( falseValue );
+			sb.append( ")) v(x)" );
+		}
+		else {
+			sb.append( "select " );
+			sb.append( trueValue );
+			sb.append( " x");
+			sb.append( getFromDualForSelectOnly() );
+			sb.append(" union all select " );
+			sb.append( falseValue );
+			sb.append( getFromDualForSelectOnly() );
+			sb.append( ") v" );
+		}
+		sb.append( ", (" );
+		if ( supportsValuesList ) {
+			sb.append( "values (" );
+			sb.append( buildStringToBooleanDecode( trueValue, falseValue ) );
+			sb.append( ")) t(v)" );
+		}
+		else {
+			sb.append( "select " );
+			sb.append( buildStringToBooleanDecode( trueValue, falseValue ) );
+			sb.append( " v");
+			sb.append( getFromDualForSelectOnly() );
+			sb.append(") t" );
+		}
+		sb.append( " where t.v is null or v.x=t.v)" );
+		return sb.toString();
+	}
+
+	protected String buildStringToBooleanDecode(String trueValue, String falseValue) {
+		final StringBuilder sb = new StringBuilder();
+		sb.append( "decode(" );
+		sb.append( getLowercaseFunction() );
+		sb.append( "(?1)" );
+		for ( String trueStringValue : TRUE_STRING_VALUES ) {
+			sb.append( ",'" );
+			sb.append( trueStringValue );
+			sb.append( "'," );
+			sb.append( trueValue );
+		}
+		for ( String falseStringValue : FALSE_STRING_VALUES ) {
+			sb.append( ",'" );
+			sb.append( falseStringValue );
+			sb.append( "'," );
+			sb.append( falseValue );
+		}
+		sb.append( ",null)" );
+		return sb.toString();
+	}
+
+	/**
+	 * Returns a table expression that has one row.
+	 *
+	 * @return the SQL equivalent to Oracle's {@code dual}.
+	 */
+	public String getDual() {
+		return "(values(0))";
+	}
+
+	public String getFromDualForSelectOnly() {
+		return "";
 	}
 
 	/**
@@ -1646,7 +1798,6 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	 * <p>
 	 * An implementation may set configuration properties from
 	 * {@link #initDefaultProperties()}, though it is discouraged.
-	 the
 	 * @return the Hibernate configuration properties
 	 *
 	 * @see #initDefaultProperties()
@@ -1893,7 +2044,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 
 
 	// native identifier generation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	
+
 	/**
 	 * The name identifying the "native" id generation strategy for this dialect.
 	 * <p>
@@ -1901,11 +2052,21 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	 * {@code "native"} is specified in {@code hbm.xml}.
 	 *
 	 * @return The name identifying the native generator strategy.
+	 *
+	 * @deprecated Use {@linkplain #getNativeValueGenerationStrategy()} instead
 	 */
+	@Deprecated(since = "7.0", forRemoval = true)
 	public String getNativeIdentifierGeneratorStrategy() {
+		return getNativeValueGenerationStrategy().name().toLowerCase( Locale.ROOT );
+	}
+
+	/**
+	 * The native type of generation supported by this Dialect.
+	 */
+	public GenerationType getNativeValueGenerationStrategy() {
 		return getIdentityColumnSupport().supportsIdentityColumns()
-				? "identity"
-				: "sequence";
+				? GenerationType.IDENTITY
+				: GenerationType.SEQUENCE;
 	}
 
 	// IDENTITY support ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2355,7 +2516,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	 * @param tableName The name of the table to drop
 	 *
 	 * @return The {@code drop table} statement as a string
-	 * 
+	 *
 	 * @deprecated No longer used
 	 *
 	 * @see StandardTableExporter#getSqlDropStrings
@@ -3274,7 +3435,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	}
 
 	/**
-	 * Get an {@link Exporter} for {@link UserDefinedType}s,
+	 * Get an {@link Exporter} for {@link UserDefinedType user defined types},
 	 * usually {@link StandardUserDefinedTypeExporter}.
 	 */
 	public Exporter<UserDefinedType> getUserDefinedTypeExporter() {
@@ -3282,7 +3443,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	}
 
 	/**
-	 * Get an {@link Exporter} for {@link Sequence}s,
+	 * Get an {@link Exporter} for {@linkplain Sequence sequences},
 	 * usually {@link StandardSequenceExporter}.
 	 */
 	public Exporter<Sequence> getSequenceExporter() {
@@ -3290,7 +3451,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	}
 
 	/**
-	 * Get an {@link Exporter} for {@link Index}es,
+	 * Get an {@link Exporter} for {@linkplain Index indexes},
 	 * usually {@link StandardIndexExporter}.
 	 */
 	public Exporter<Index> getIndexExporter() {
@@ -3298,7 +3459,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	}
 
 	/**
-	 * Get an {@link Exporter} for {@link ForeignKey}s,
+	 * Get an {@link Exporter} for {@linkplain ForeignKey foreign key} constraints,
 	 * usually {@link StandardForeignKeyExporter}.
 	 */
 	public Exporter<ForeignKey> getForeignKeyExporter() {
@@ -3306,10 +3467,10 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	}
 
 	/**
-	 * Get an {@link Exporter} for unique key {@link Constraint}s,
+	 * Get an {@link Exporter} for {@linkplain UniqueKey unique key} constraints,
 	 * usually {@link StandardUniqueKeyExporter}.
 	 */
-	public Exporter<Constraint> getUniqueKeyExporter() {
+	public Exporter<UniqueKey> getUniqueKeyExporter() {
 		return uniqueKeyExporter;
 	}
 
@@ -4548,15 +4709,7 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	 * @apiNote Needed because MySQL has nonstandard escape characters
 	 */
 	public void appendLiteral(SqlAppender appender, String literal) {
-		appender.appendSql( '\'' );
-		for ( int i = 0; i < literal.length(); i++ ) {
-			final char c = literal.charAt( i );
-			if ( c == '\'' ) {
-				appender.appendSql( '\'' );
-			}
-			appender.appendSql( c );
-		}
-		appender.appendSql( '\'' );
+		appender.appendSingleQuoteEscapedString( literal );
 	}
 
 	/**
@@ -5577,9 +5730,31 @@ public abstract class Dialect implements ConversionContext, TypeContributor, Fun
 	/**
 	 * Does this dialect support appending table options SQL fragment at the end of the SQL Table creation statement?
 	 *
-	 *  @return {@code true} indicates it does; {@code false} indicates it does not;
+	 * @return {@code true} indicates it does; {@code false} indicates it does not;
 	 */
-	public boolean supportsTableOptions(){
+	public boolean supportsTableOptions() {
+		return false;
+	}
+
+	/**
+	 * Does this dialect support binding {@link Types#NULL} for {@link PreparedStatement#setNull(int, int)}?
+	 * if it does, then call of {@link PreparedStatement#getParameterMetaData()} could be eliminated for better performance.
+	 *
+	 * @return {@code true} indicates it does; {@code false} indicates it does not;
+	 * @see org.hibernate.type.descriptor.jdbc.ObjectNullResolvingJdbcType
+	 */
+	public boolean supportsBindingNullSqlTypeForSetNull() {
+		return false;
+	}
+
+	/**
+	 * Does this dialect support binding {@code null} for {@link PreparedStatement#setObject(int, Object)}?
+	 * if it does, then call of {@link PreparedStatement#getParameterMetaData()} could be eliminated for better performance.
+	 *
+	 * @return {@code true} indicates it does; {@code false} indicates it does not;
+	 * @see org.hibernate.type.descriptor.jdbc.ObjectNullResolvingJdbcType
+	 */
+	public boolean supportsBindingNullForSetObject() {
 		return false;
 	}
 

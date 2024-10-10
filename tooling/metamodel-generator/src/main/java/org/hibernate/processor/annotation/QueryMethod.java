@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.annotation;
 
@@ -270,7 +268,13 @@ public class QueryMethod extends AbstractQueryMethod {
 
 	@Override
 	public String getAttributeNameDeclarationString() {
-		StringBuilder sb = new StringBuilder(queryString.length() + 100)
+		StringBuilder declaration = new StringBuilder( queryString.length() + 200 );
+		declaration
+				.append("\n/**\n * @see ")
+				.append("#");
+		signature( declaration );
+		declaration
+				.append( "\n **/\n" )
 				.append( "static final String " )
 				.append( getConstantName() )
 				.append( " = \"" );
@@ -278,23 +282,23 @@ public class QueryMethod extends AbstractQueryMethod {
 			final char c = queryString.charAt( i );
 			switch ( c ) {
 				case '\r':
-					sb.append( "\\r" );
+					declaration.append( "\\r" );
 					break;
 				case '\n':
-					sb.append( "\\n" );
+					declaration.append( "\\n" );
 					break;
 				case '\\':
-					sb.append( "\\\\" );
+					declaration.append( "\\\\" );
 					break;
 				case '"':
-					sb.append( "\\\"" );
+					declaration.append( "\\\"" );
 					break;
 				default:
-					sb.append( c );
+					declaration.append( c );
 					break;
 			}
 		}
-		return sb.append("\";").toString();
+		return declaration.append("\";").toString();
 	}
 
 	private String getConstantName() {

@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.annotation;
 
@@ -71,11 +69,9 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static javax.lang.model.util.ElementFilter.fieldsIn;
 import static javax.lang.model.util.ElementFilter.methodsIn;
-import static org.hibernate.grammars.hql.HqlLexer.AS;
 import static org.hibernate.grammars.hql.HqlLexer.FROM;
 import static org.hibernate.grammars.hql.HqlLexer.GROUP;
 import static org.hibernate.grammars.hql.HqlLexer.HAVING;
-import static org.hibernate.grammars.hql.HqlLexer.IDENTIFIER;
 import static org.hibernate.grammars.hql.HqlLexer.ORDER;
 import static org.hibernate.grammars.hql.HqlLexer.WHERE;
 import static org.hibernate.internal.util.StringHelper.qualify;
@@ -740,7 +736,7 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 							name,
 							sessionType,
 							getSessionVariableName( sessionType ),
-							dataStore(), 
+							dataStore(),
 							context.addInjectAnnotation(),
 							context.addNonnullAnnotation(),
 							false,
@@ -1017,14 +1013,11 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 	private boolean compatibleAccess(TypeElement assocTypeElement, Element member) {
 		final AccessType memberAccessType = determineAnnotationSpecifiedAccessType( member );
 		final AccessType accessType = memberAccessType == null ? getAccessType(assocTypeElement) : memberAccessType;
-		switch ( member.getKind() ) {
-			case FIELD:
-				return accessType == AccessType.FIELD;
-			case METHOD:
-				return accessType == AccessType.PROPERTY;
-			default:
-				return false;
-		}
+		return switch ( member.getKind() ) {
+			case FIELD -> accessType == AccessType.FIELD;
+			case METHOD -> accessType == AccessType.PROPERTY;
+			default -> false;
+		};
 	}
 
 	private void validateBackRef(
@@ -1447,15 +1440,12 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 		switch ( parameterType.getKind() ) {
 			case DECLARED:
 				final DeclaredType declaredType = (DeclaredType) parameterType;
-				List<? extends TypeMirror> typeArguments = declaredType.getTypeArguments();
-				switch ( typeArguments.size() ) {
-					case 1:
-						return typeArguments.get(0);
-					case 2:
-						return typeArguments.get(1);
-					default:
-						return null;
-				}
+				final List<? extends TypeMirror> typeArguments = declaredType.getTypeArguments();
+				return switch ( typeArguments.size() ) {
+					case 1 -> typeArguments.get(0);
+					case 2 -> typeArguments.get(1);
+					default -> null;
+				};
 			case ARRAY:
 				final ArrayType arrayType = (ArrayType) parameterType;
 				return arrayType.getComponentType();
@@ -1777,17 +1767,11 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 	}
 
 	private String getSessionVariableName(String sessionType) {
-		switch (sessionType) {
-			case HIB_SESSION:
-			case HIB_STATELESS_SESSION:
-			case MUTINY_SESSION:
-			case MUTINY_STATELESS_SESSION:
-//			case UNI_MUTINY_SESSION:
-//			case UNI_MUTINY_STATELESS_SESSION:
-				return "session";
-			default:
-				return sessionGetter;
-		}
+		return switch (sessionType) {
+			case HIB_SESSION, HIB_STATELESS_SESSION, MUTINY_SESSION, MUTINY_STATELESS_SESSION -> "session";
+//			case UNI_MUTINY_SESSION, UNI_MUTINY_STATELESS_SESSION -> "session";
+			default -> sessionGetter;
+		};
 	}
 
 	private static List<String> enabledFetchProfiles(ExecutableElement method) {
@@ -1916,25 +1900,28 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 					);
 					break;
 				case NATURAL_ID:
-					putMember( methodKey,
-							new NaturalIdFinderMethod(
-									this, method,
-									methodName,
-									returnType.toString(),
-									containerType,
-									paramNames,
-									paramTypes,
-									parameterNullability(method, entity),
-									repository,
-									sessionType[0],
-									sessionType[1],
-									profiles,
-									context.addNonnullAnnotation(),
-									jakartaDataRepository,
-									fullReturnType(method)
-							)
-					);
-					break;
+					if ( !usingStatelessSession( sessionType[0] ) ) {// no byNaturalId() lookup API for SS
+						putMember( methodKey,
+								new NaturalIdFinderMethod(
+										this, method,
+										methodName,
+										returnType.toString(),
+										containerType,
+										paramNames,
+										paramTypes,
+										parameterNullability(method, entity),
+										repository,
+										sessionType[0],
+										sessionType[1],
+										profiles,
+										context.addNonnullAnnotation(),
+										jakartaDataRepository,
+										fullReturnType(method)
+								)
+						);
+						break;
+					}
+					// else intentionally fall through
 				case BASIC:
 				case MULTIVALUED:
 					final List<Boolean> paramPatterns = parameterPatterns( method );
@@ -1976,17 +1963,16 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 			return FieldType.BASIC;
 		}
 		else {
-			switch (fieldType) {
-				case ID:
+			return switch (fieldType) {
+				case ID ->
 					// no byId() API for SS or M.S, only get()
-					return FieldType.ID;
-				case NATURAL_ID:
+						FieldType.ID;
+				case NATURAL_ID ->
 					// no byNaturalId() lookup API for SS
 					// no byNaturalId() in M.S, but we do have Identifier workaround
-					return FieldType.NATURAL_ID;
-				default:
-					return FieldType.BASIC;
-			}
+						FieldType.NATURAL_ID;
+				default -> FieldType.BASIC;
+			};
 		}
 	}
 
@@ -2123,7 +2109,8 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 
 	private boolean finderParameterNullable(TypeElement entity, VariableElement param) {
 		final Element member = memberMatchingPath( entity, parameterName( param ) );
-		return member == null || isNullable(member);
+		return isNullable( param )
+			&& ( member == null || isNullable( member ) );
 	}
 
 	private AccessType getAccessType(TypeElement entity) {
@@ -2399,6 +2386,12 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 		return resultType.asElement().getSimpleName().toString();
 	}
 
+	/**
+	 * In the {@code @Query} annotation we tolerate missing {@code from} clauses
+	 * to an extent that ORM core does not. For example, we accept {@code select name, age}
+	 * and {@code select id where year(date)>:year} as a legit queries. (It would be easy to
+	 * change ORM core to also accept these queries.)
+	 */
 	private static String addFromClauseIfNecessary(String hql, @Nullable String entityType) {
 		if ( entityType == null ) {
 			return hql;
@@ -2408,47 +2401,22 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 		}
 		else {
 			final HqlLexer hqlLexer = HqlParseTreeBuilder.INSTANCE.buildHqlLexer( hql );
-			String thisText = "";
 			final List<? extends Token> allTokens = hqlLexer.getAllTokens();
-			for (Token token : allTokens) {
-				if ( token.getType() == IDENTIFIER ) {
-					//TEMPORARY until HQL gets support for 'this'
-					final String text = token.getText();
-					if ( text.equalsIgnoreCase("this") ) {
-						thisText = " as " + text;
-					}
-					break;
-				}
-			}
 			for (int i = 0; i < allTokens.size(); i++) {
 				final Token token = allTokens.get(i);
 				switch ( token.getType() ) {
 					case FROM:
-						return thisText.isEmpty() || hasAlias(i, allTokens) ? hql
-								: new StringBuilder(hql)
-								.insert(allTokens.get(i+1).getStopIndex() + 1, thisText)
-								.toString();
+						return hql;
 					case WHERE:
 					case HAVING:
 					case GROUP:
 					case ORDER:
 						return new StringBuilder(hql)
-								.insert(token.getStartIndex(), "from " + entityType + thisText + " ")
+								.insert(token.getStartIndex(), "from " + entityType + " ")
 								.toString();
 				}
 			}
-			return hql + " from " + entityType + thisText;
-		}
-	}
-
-	private static boolean hasAlias(int i, List<? extends Token> allTokens) {
-		if ( allTokens.size() <= i+2 ) {
-			return false;
-		}
-		else {
-			final int nextTokenType = allTokens.get(i+2).getType();
-			return nextTokenType == IDENTIFIER
-				|| nextTokenType == AS;
+			return hql + " from " + entityType;
 		}
 	}
 
@@ -2569,12 +2537,10 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 						returnTypeCorrect = false;
 				}
 			}
-			else if ( selection instanceof JpaEntityJoin ) {
-				final JpaEntityJoin<?,?> from = (JpaEntityJoin<?,?>) selection;
+			else if ( selection instanceof JpaEntityJoin<?, ?> from ) {
 				returnTypeCorrect = checkReturnedEntity( from.getModel(), returnType );
 			}
-			else if ( selection instanceof JpaRoot ) {
-				final JpaRoot<?> from = (JpaRoot<?>) selection;
+			else if ( selection instanceof JpaRoot<?> from ) {
 				returnTypeCorrect = checkReturnedEntity( from.getModel(), returnType );
 			}
 			else {
@@ -2833,26 +2799,17 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 	}
 
 	private static @Nullable String fromPrimitive(String argType) {
-		switch (argType) {
-			case "boolean":
-				return Boolean.class.getName();
-			case "char":
-				return Character.class.getName();
-			case "int":
-				return Integer.class.getName();
-			case "long":
-				return Long.class.getName();
-			case "short":
-				return Short.class.getName();
-			case "byte":
-				return Byte.class.getName();
-			case "float":
-				return Float.class.getName();
-			case "double":
-				return Double.class.getName();
-			default:
-				return null;
-		}
+		return switch (argType) {
+			case "boolean" -> Boolean.class.getName();
+			case "char" -> Character.class.getName();
+			case "int" -> Integer.class.getName();
+			case "long" -> Long.class.getName();
+			case "short" -> Short.class.getName();
+			case "byte" -> Byte.class.getName();
+			case "float" -> Float.class.getName();
+			case "double" -> Double.class.getName();
+			default -> null;
+		};
 	}
 
 	private List<Boolean> parameterNullability(ExecutableElement method, TypeElement entity) {
@@ -2889,8 +2846,9 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 	private TypeMirror parameterType(VariableElement parameter) {
 		final ExecutableElement method =
 				(ExecutableElement) parameter.getEnclosingElement();
-		final TypeMirror type = memberMethodType(method).getParameterTypes()
-				.get( method.getParameters().indexOf(parameter) );
+		final TypeMirror type =
+				memberMethodType(method).getParameterTypes()
+						.get( method.getParameters().indexOf(parameter) );
 		switch ( type.getKind() ) {
 			case TYPEVAR:
 				final TypeVariable typeVariable = (TypeVariable) type;
@@ -2975,30 +2933,29 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 					return false;
 				}
 			case FIELD:
+			case PARAMETER:
 				if ( member.asType().getKind().isPrimitive() ) {
 					return false;
 				}
 		}
-		boolean nullable = true;
 		for ( AnnotationMirror mirror : member.getAnnotationMirrors() ) {
 			final TypeElement annotationType = (TypeElement) mirror.getAnnotationType().asElement();
 			final Name name = annotationType.getQualifiedName();
-			if ( name.contentEquals(Constants.ID) ) {
-				nullable = false;
+			if ( name.contentEquals(Constants.ID)
+				|| name.contentEquals(Constants.NOT_NULL)
+				|| name.contentEquals(Constants.NONNULL) ) {
+				return false;
 			}
-			if ( name.contentEquals("jakarta.validation.constraints.NotNull")) {
-				nullable = false;
-			}
-			if ( name.contentEquals(Constants.BASIC)
+			else if ( name.contentEquals(Constants.BASIC)
 					|| name.contentEquals(Constants.MANY_TO_ONE)
 					|| name.contentEquals(Constants.ONE_TO_ONE)) {
-				AnnotationValue optional = getAnnotationValue(mirror, "optional");
+				final AnnotationValue optional = getAnnotationValue(mirror, "optional");
 				if ( optional != null && optional.getValue().equals(FALSE) ) {
-					nullable = false;
+					return false;
 				}
 			}
 		}
-		return nullable;
+		return true;
 	}
 
 	private void checkParameters(
@@ -3100,17 +3057,11 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 	}
 
 	private boolean isLocal(Element methodOrParam) {
-		switch (methodOrParam.getKind()) {
-			case PARAMETER:
-				return element.getEnclosedElements()
-						.contains( methodOrParam.getEnclosingElement() );
-			case METHOD:
-			case FIELD:
-				return element.getEnclosedElements()
-						.contains( methodOrParam );
-			default:
-				return true;
-		}
+		return switch ( methodOrParam.getKind() ) {
+			case PARAMETER -> element.getEnclosedElements().contains( methodOrParam.getEnclosingElement() );
+			case METHOD, FIELD -> element.getEnclosedElements().contains( methodOrParam );
+			default -> true;
+		};
 	}
 
 	public void message(Element method, String message, Diagnostic.Kind severity) {
@@ -3157,6 +3108,22 @@ public class AnnotationMetaEntity extends AnnotationMeta {
 		}
 		else {
 			return emptyList();
+		}
+	}
+
+	@Override
+	public String javadoc() {
+		if ( jakartaDataRepository ) {
+			return "/**\n * Implements Jakarta Data repository {@link " + qualifiedName + "}\n **/";
+		}
+		else if ( repository ) {
+			return "/**\n * Implements repository {@link " + qualifiedName + "}\n **/";
+		}
+		else if ( jakartaDataStaticModel ) {
+			return "/**\n * Jakarta Data static metamodel for {@link " + qualifiedName + "}\n **/";
+		}
+		else {
+			return "/**\n * Static metamodel for {@link " + qualifiedName + "}\n **/";
 		}
 	}
 }

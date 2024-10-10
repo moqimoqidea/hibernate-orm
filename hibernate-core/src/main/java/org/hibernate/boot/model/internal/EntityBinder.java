@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.boot.model.internal;
 
@@ -54,7 +52,6 @@ import org.hibernate.annotations.Synchronize;
 import org.hibernate.annotations.TypeBinderType;
 import org.hibernate.annotations.View;
 import org.hibernate.binder.TypeBinder;
-import org.hibernate.boot.model.IdentifierGeneratorDefinition;
 import org.hibernate.boot.model.NamedEntityGraphDefinition;
 import org.hibernate.boot.model.internal.InheritanceState.ElementsToProcess;
 import org.hibernate.boot.model.naming.EntityNaming;
@@ -213,7 +210,6 @@ public class EntityBinder {
 	public static void bindEntityClass(
 			ClassDetails clazzToProcess,
 			Map<ClassDetails, InheritanceState> inheritanceStates,
-			Map<String, IdentifierGeneratorDefinition> generators,
 			MetadataBuildingContext context) {
 		if ( LOG.isDebugEnabled() ) {
 			LOG.debugf( "Binding entity from annotated class: %s", clazzToProcess.getName() );
@@ -242,7 +238,7 @@ public class EntityBinder {
 				inheritanceStates
 		);
 		entityBinder.handleInheritance( inheritanceState, superEntity, holder );
-		entityBinder.handleIdentifier( holder, inheritanceStates, generators, inheritanceState );
+		entityBinder.handleIdentifier( holder, inheritanceStates, inheritanceState );
 
 		final InFlightMetadataCollector collector = context.getMetadataCollector();
 		if ( persistentClass instanceof RootClass rootClass ) {
@@ -396,7 +392,6 @@ public class EntityBinder {
 	private void handleIdentifier(
 			PropertyHolder propertyHolder,
 			Map<ClassDetails, InheritanceState> inheritanceStates,
-			Map<String, IdentifierGeneratorDefinition> generators,
 			InheritanceState inheritanceState) {
 		final ElementsToProcess elementsToProcess = inheritanceState.postProcess( persistentClass, this );
 		final Set<String> idPropertiesIfIdClass = handleIdClass(
@@ -412,7 +407,6 @@ public class EntityBinder {
 				inheritanceState,
 				context,
 				propertyHolder,
-				generators,
 				idPropertiesIfIdClass,
 				elementsToProcess,
 				inheritanceStates
@@ -899,6 +893,7 @@ public class EntityBinder {
 			else if ( foreignKey != null ) {
 				key.setForeignKeyName( nullIfEmpty( foreignKey.name() ) );
 				key.setForeignKeyDefinition( nullIfEmpty( foreignKey.foreignKeyDefinition() ) );
+				key.setForeignKeyOptions( foreignKey.options() );
 			}
 			else if ( noConstraintByDefault ) {
 				key.disableForeignKey();
@@ -907,11 +902,13 @@ public class EntityBinder {
 				final ForeignKey nestedFk = pkJoinColumns.foreignKey();
 				key.setForeignKeyName( nullIfEmpty( nestedFk.name() ) );
 				key.setForeignKeyDefinition( nullIfEmpty( nestedFk.foreignKeyDefinition() ) );
+				key.setForeignKeyOptions( nestedFk.options() );
 			}
 			else if ( pkJoinColumn != null ) {
 				final ForeignKey nestedFk = pkJoinColumn.foreignKey();
 				key.setForeignKeyName( nullIfEmpty( nestedFk.name() ) );
 				key.setForeignKeyDefinition( nullIfEmpty( nestedFk.foreignKeyDefinition() ) );
+				key.setForeignKeyOptions( nestedFk.options() );
 			}
 		}
 	}
@@ -1032,7 +1029,6 @@ public class EntityBinder {
 			InheritanceState inheritanceState,
 			MetadataBuildingContext context,
 			PropertyHolder propertyHolder,
-			Map<String, IdentifierGeneratorDefinition> generators,
 			Set<String> idPropertiesIfIdClass,
 			ElementsToProcess elementsToProcess,
 			Map<ClassDetails, InheritanceState> inheritanceStates) {
@@ -1063,7 +1059,6 @@ public class EntityBinder {
 									? Nullability.FORCED_NULL
 									: Nullability.NO_CONSTRAINT,
 							propertyAnnotatedElement,
-							generators,
 							this,
 							false,
 							false,
@@ -1858,8 +1853,8 @@ public class EntityBinder {
 	}
 
 	public void finalSecondaryTableBinding(PropertyHolder propertyHolder) {
-		 // This operation has to be done after the id definition of the persistence class.
-		 // ie after the properties parsing
+		// This operation has to be done after the id definition of the persistence class.
+		// ie after the properties parsing
 		final Iterator<Object> joinColumns = secondaryTableJoins.values().iterator();
 		for ( Map.Entry<String, Join> entrySet : secondaryTables.entrySet() ) {
 			if ( !secondaryTablesFromAnnotation.containsKey( entrySet.getKey() ) ) {
@@ -1869,8 +1864,8 @@ public class EntityBinder {
 	}
 
 	public void finalSecondaryTableFromAnnotationBinding(PropertyHolder propertyHolder) {
-		 // This operation has to be done before the end of the FK second pass processing in order
-		 // to find the join columns belonging to secondary tables
+		// This operation has to be done before the end of the FK second pass processing in order
+		// to find the join columns belonging to secondary tables
 		Iterator<Object> joinColumns = secondaryTableFromAnnotationJoins.values().iterator();
 		for ( Map.Entry<String, Join> entrySet : secondaryTables.entrySet() ) {
 			if ( secondaryTablesFromAnnotation.containsKey( entrySet.getKey() ) ) {
@@ -1992,6 +1987,7 @@ public class EntityBinder {
 			else {
 				key.setForeignKeyName( nullIfEmpty( jpaSecondaryTable.foreignKey().name() ) );
 				key.setForeignKeyDefinition( nullIfEmpty( jpaSecondaryTable.foreignKey().foreignKeyDefinition() ) );
+				key.setForeignKeyOptions( jpaSecondaryTable.foreignKey().options() );
 			}
 		}
 	}

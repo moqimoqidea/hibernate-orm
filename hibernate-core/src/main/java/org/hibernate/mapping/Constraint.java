@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.mapping;
 
@@ -24,6 +22,7 @@ public abstract class Constraint implements Exportable, Serializable {
 	private String name;
 	private final ArrayList<Column> columns = new ArrayList<>();
 	private Table table;
+	private String options = "";
 
 	public String getName() {
 		return name;
@@ -31,6 +30,14 @@ public abstract class Constraint implements Exportable, Serializable {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public String getOptions() {
+		return options;
+	}
+
+	public void setOptions(String options) {
+		this.options = options;
 	}
 
 	public void addColumn(Column column) {

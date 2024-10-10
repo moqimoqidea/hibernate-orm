@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.sqm.internal;
 
@@ -17,7 +15,6 @@ import org.hibernate.query.Page;
 import org.hibernate.query.QueryLogging;
 import org.hibernate.query.SelectionQuery;
 import org.hibernate.query.criteria.JpaSelection;
-import org.hibernate.query.criteria.ValueHandlingMode;
 import org.hibernate.query.hql.internal.NamedHqlQueryMementoImpl;
 import org.hibernate.query.hql.internal.QuerySplitter;
 import org.hibernate.query.named.NamedQueryMemento;
@@ -25,17 +22,14 @@ import org.hibernate.query.spi.AbstractSelectionQuery;
 import org.hibernate.query.spi.HqlInterpretation;
 import org.hibernate.query.spi.MutableQueryOptions;
 import org.hibernate.query.spi.QueryEngine;
-import org.hibernate.query.spi.QueryInterpretationCache;
 import org.hibernate.query.spi.QueryOptions;
 import org.hibernate.query.spi.SelectQueryPlan;
-import org.hibernate.query.sqm.NodeBuilder;
 import org.hibernate.query.sqm.spi.NamedSqmQueryMemento;
 import org.hibernate.query.sqm.tree.SqmStatement;
 import org.hibernate.query.sqm.tree.from.SqmRoot;
 import org.hibernate.query.sqm.tree.select.SqmQueryGroup;
 import org.hibernate.query.sqm.tree.select.SqmQueryPart;
 import org.hibernate.query.sqm.tree.select.SqmQuerySpec;
-import org.hibernate.query.sqm.tree.select.SqmSelectClause;
 import org.hibernate.query.sqm.tree.select.SqmSelectStatement;
 import org.hibernate.query.sqm.tree.select.SqmSelectableNode;
 import org.hibernate.query.sqm.tree.select.SqmSelection;
@@ -52,7 +46,6 @@ import jakarta.persistence.criteria.CompoundSelection;
 import static java.util.stream.Collectors.toList;
 import static org.hibernate.cfg.QuerySettings.FAIL_ON_PAGINATION_OVER_COLLECTION_FETCH;
 import static org.hibernate.query.KeyedPage.KeyInterpretation.KEY_OF_FIRST_ON_NEXT_PAGE;
-import static org.hibernate.query.sqm.internal.KeyBasedPagination.paginate;
 import static org.hibernate.query.sqm.internal.KeyedResult.collectKeys;
 import static org.hibernate.query.sqm.internal.KeyedResult.collectResults;
 import static org.hibernate.query.sqm.internal.SqmUtil.isHqlTuple;
@@ -67,6 +60,10 @@ abstract class AbstractSqmSelectionQuery<R> extends AbstractSelectionQuery<R> {
 
 	AbstractSqmSelectionQuery(SharedSessionContractImplementor session) {
 		super(session);
+	}
+
+	AbstractSqmSelectionQuery(AbstractSqmSelectionQuery<?> original) {
+		super( original );
 	}
 
 	protected int max(boolean hasLimit, SqmSelectStatement<?> sqmStatement, List<R> list) {
@@ -87,7 +84,7 @@ abstract class AbstractSqmSelectionQuery<R> extends AbstractSelectionQuery<R> {
 
 	protected boolean needsDistinct(boolean containsCollectionFetches, boolean hasLimit, SqmSelectStatement<?> sqmStatement) {
 		return containsCollectionFetches
-				&& ( hasLimit || sqmStatement.usesDistinct() || hasAppliedGraph( getQueryOptions() ) );
+			&& ( hasLimit || sqmStatement.usesDistinct() || hasAppliedGraph( getQueryOptions() ) );
 	}
 
 	protected static boolean hasAppliedGraph(MutableQueryOptions queryOptions) {
@@ -158,46 +155,14 @@ abstract class AbstractSqmSelectionQuery<R> extends AbstractSelectionQuery<R> {
 		return this;
 	}
 
-	private SqmSelectStatement<KeyedResult<R>> paginateQuery(
-			List<Order<? super R>> keyDefinition, List<Comparable<?>> keyValues) {
-		@SuppressWarnings("unchecked")
-		final SqmSelectStatement<KeyedResult<R>> sqm =
-				(SqmSelectStatement<KeyedResult<R>>)
-						getSqmSelectStatement().copy( noParamCopyContext() );
-		final NodeBuilder builder = sqm.nodeBuilder();
-		//TODO: find a better way handle parameters
-		final ValueHandlingMode valueHandlingMode = builder.setCriteriaValueHandlingMode(ValueHandlingMode.INLINE);
-		try {
-			return paginate( keyDefinition, keyValues, sqm, builder );
-		}
-		finally {
-			builder.setCriteriaValueHandlingMode( valueHandlingMode );
-		}
-	}
-
-
 	@Override
 	public KeyedResultList<R> getKeyedResultList(KeyedPage<R> keyedPage) {
 		if ( keyedPage == null ) {
 			throw new IllegalArgumentException( "KeyedPage was null" );
 		}
+		final List<KeyedResult<R>> results = new SqmSelectionQueryImpl<KeyedResult<R>>( this, keyedPage )
+				.getResultList();
 		final Page page = keyedPage.getPage();
-		final List<Comparable<?>> key = keyedPage.getKey();
-		final List<Order<? super R>> keyDefinition = keyedPage.getKeyDefinition();
-		final List<Order<? super R>> appliedKeyDefinition =
-				keyedPage.getKeyInterpretation() == KEY_OF_FIRST_ON_NEXT_PAGE
-						? Order.reverse(keyDefinition) : keyDefinition;
-
-		setMaxResults( page.getMaxResults() + 1 );
-		if ( key == null ) {
-			setFirstResult( page.getFirstResult() );
-		}
-
-//		getQueryOptions().setQueryPlanCachingEnabled( false );
-		final List<KeyedResult<R>> results =
-				buildConcreteQueryPlan( paginateQuery( appliedKeyDefinition, key ), getQueryOptions() )
-						.performList(this);
-
 		return new KeyedResultList<>(
 				collectResults( results, page.getSize(), keyedPage.getKeyInterpretation() ),
 				collectKeys( results, page.getSize() ),
@@ -281,10 +246,6 @@ abstract class AbstractSqmSelectionQuery<R> extends AbstractSelectionQuery<R> {
 		);
 	}
 
-	private <T> SelectQueryPlan<T> buildConcreteQueryPlan(SqmSelectStatement<T> sqmStatement, QueryOptions options) {
-		return buildConcreteQueryPlan( sqmStatement, null, null, options );
-	}
-
 	protected void applyOptions(NamedSqmQueryMemento<?> memento) {
 		applyOptions( (NamedQueryMemento<?>) memento );
 
@@ -309,12 +270,9 @@ abstract class AbstractSqmSelectionQuery<R> extends AbstractSelectionQuery<R> {
 	}
 
 	protected TupleMetadata buildTupleMetadata(SqmStatement<?> statement, Class<R> resultType) {
-		if ( statement instanceof SqmSelectStatement<?> ) {
-			final SqmSelectStatement<?> select = (SqmSelectStatement<?>) statement;
-			final SqmSelectClause selectClause = select.getQueryPart().getFirstQuerySpec().getSelectClause();
+		if ( statement instanceof SqmSelectStatement<?> select ) {
 			final List<SqmSelection<?>> selections =
-					selectClause
-							.getSelections();
+					select.getQueryPart().getFirstQuerySpec().getSelectClause().getSelections();
 			return isTupleMetadataRequired( resultType, selections.get(0) )
 					? getTupleMetadata( selections )
 					: null;
@@ -326,15 +284,15 @@ abstract class AbstractSqmSelectionQuery<R> extends AbstractSelectionQuery<R> {
 
 	private static <R> boolean isTupleMetadataRequired(Class<R> resultType, SqmSelection<?> selection) {
 		return isHqlTuple( selection )
-				|| !isInstantiableWithoutMetadata( resultType )
+			|| !isInstantiableWithoutMetadata( resultType )
 				&& !isSelectionAssignableToResultType( selection, resultType );
 	}
 
 	private static boolean isInstantiableWithoutMetadata(Class<?> resultType) {
 		return resultType == null
-				|| resultType.isArray()
-				|| Object.class == resultType
-				|| List.class == resultType;
+			|| resultType.isArray()
+			|| Object.class == resultType
+			|| List.class == resultType;
 	}
 
 	private TupleMetadata getTupleMetadata(List<SqmSelection<?>> selections) {
@@ -398,10 +356,8 @@ abstract class AbstractSqmSelectionQuery<R> extends AbstractSelectionQuery<R> {
 	}
 
 	protected static void validateCriteriaQuery(SqmQueryPart<?> queryPart) {
-		if ( queryPart instanceof SqmQuerySpec<?> ) {
-			final SqmQuerySpec<?> sqmQuerySpec = (SqmQuerySpec<?>) queryPart;
-			final List<SqmSelection<?>> selections = sqmQuerySpec.getSelectClause().getSelections();
-			if ( selections.isEmpty() ) {
+		if ( queryPart instanceof SqmQuerySpec<?> sqmQuerySpec ) {
+			if ( sqmQuerySpec.getSelectClause().getSelections().isEmpty() ) {
 				// make sure there is at least one root
 				final List<SqmRoot<?>> sqmRoots = sqmQuerySpec.getFromClause().getRoots();
 				if ( sqmRoots == null || sqmRoots.isEmpty() ) {
@@ -416,25 +372,23 @@ abstract class AbstractSqmSelectionQuery<R> extends AbstractSelectionQuery<R> {
 				}
 			}
 		}
-		else {
-			final SqmQueryGroup<?> queryGroup = (SqmQueryGroup<?>) queryPart;
+		else if ( queryPart instanceof SqmQueryGroup<?> queryGroup ) {
 			for ( SqmQueryPart<?> part : queryGroup.getQueryParts() ) {
 				validateCriteriaQuery( part );
 			}
 		}
+		else {
+			assert false;
+		}
 	}
 
 	protected static <T> HqlInterpretation<T> interpretation(
-			NamedHqlQueryMementoImpl memento,
+			NamedHqlQueryMementoImpl<?> memento,
 			Class<T> expectedResultType,
 			SharedSessionContractImplementor session) {
 		final QueryEngine queryEngine = session.getFactory().getQueryEngine();
-		final QueryInterpretationCache interpretationCache = queryEngine.getInterpretationCache();
-		final HqlInterpretation<T> interpretation = interpretationCache.resolveHqlInterpretation(
-				memento.getHqlString(),
-				expectedResultType,
-				queryEngine.getHqlTranslator()
-		);
-		return interpretation;
+		return queryEngine.getInterpretationCache()
+				.resolveHqlInterpretation( memento.getHqlString(), expectedResultType,
+						queryEngine.getHqlTranslator() );
 	}
 }

@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.results.complete;
 
@@ -21,6 +19,7 @@ import org.hibernate.query.results.ResultBuilder;
 import org.hibernate.query.results.ResultsHelper;
 import org.hibernate.query.results.dynamic.DynamicFetchBuilderLegacy;
 import org.hibernate.spi.NavigablePath;
+import org.hibernate.sql.ast.spi.SqlAliasBase;
 import org.hibernate.sql.results.graph.DomainResultCreationState;
 import org.hibernate.sql.results.graph.entity.EntityResult;
 import org.hibernate.sql.results.jdbc.spi.JdbcValuesMetadata;
@@ -90,6 +89,9 @@ public class CompleteResultBuilderEntityJpa implements CompleteResultBuilderEnti
 			int resultPosition,
 			BiFunction<String, String, DynamicFetchBuilderLegacy> legacyFetchResolver,
 			DomainResultCreationState domainResultCreationState) {
+		final String implicitAlias = entityDescriptor.getSqlAliasStem() + resultPosition;
+		final SqlAliasBase sqlAliasBase = domainResultCreationState.getSqlAliasBaseManager().createSqlAliasBase( implicitAlias );
+
 		final DomainResultCreationStateImpl impl = ResultsHelper.impl( domainResultCreationState );
 		impl.disallowPositionalSelections();
 
@@ -103,8 +105,8 @@ public class CompleteResultBuilderEntityJpa implements CompleteResultBuilderEnti
 							// since this is only used for result set mappings, the canUseInnerJoins value is irrelevant.
 							true,
 							navigablePath,
-							null,
-							null,
+							implicitAlias,
+							sqlAliasBase,
 							null,
 							impl.getSqlAstCreationState()
 					)
@@ -113,7 +115,7 @@ public class CompleteResultBuilderEntityJpa implements CompleteResultBuilderEnti
 			return new EntityResultImpl(
 					navigablePath,
 					entityDescriptor,
-					null,
+					implicitAlias,
 					lockMode,
 					(entityResult) -> {
 						if ( discriminatorFetchBuilder == null ) {

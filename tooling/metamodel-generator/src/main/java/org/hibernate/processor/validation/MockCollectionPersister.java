@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later.
- * See the lgpl.txt file in the root directory or <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.processor.validation;
 
@@ -17,7 +15,6 @@ import org.hibernate.type.MapType;
 import org.hibernate.type.Type;
 
 import static org.hibernate.internal.util.StringHelper.root;
-import static org.hibernate.processor.validation.MockSessionFactory.typeConfiguration;
 
 /**
  * @author Gavin King
@@ -55,7 +52,7 @@ public abstract class MockCollectionPersister implements CollectionPersister, Jo
 
 	@Override
 	public EntityPersister getOwnerEntityPersister() {
-		return factory.getMetamodel().entityPersister(ownerEntityName);
+		return factory.getMetamodel().getEntityDescriptor(ownerEntityName);
 	}
 
 	abstract Type getElementPropertyType(String propertyPath);
@@ -68,11 +65,11 @@ public abstract class MockCollectionPersister implements CollectionPersister, Jo
 	@Override
 	public Type getIndexType() {
 		if (collectionType instanceof ListType) {
-			return typeConfiguration.getBasicTypeForJavaType(Integer.class);
+			return factory.getTypeConfiguration().getBasicTypeForJavaType(Integer.class);
 		}
 		else if (collectionType instanceof MapType) {
 			//TODO!!! this is incorrect, return the correct key type
-			return typeConfiguration.getBasicTypeForJavaType(String.class);
+			return factory.getTypeConfiguration().getBasicTypeForJavaType(String.class);
 		}
 		else {
 			return null;
@@ -86,7 +83,7 @@ public abstract class MockCollectionPersister implements CollectionPersister, Jo
 
 	@Override
 	public Type getIdentifierType() {
-		return typeConfiguration.getBasicTypeForJavaType(Long.class);
+		return factory.getTypeConfiguration().getBasicTypeForJavaType(Long.class);
 	}
 
 	@Override
@@ -99,7 +96,7 @@ public abstract class MockCollectionPersister implements CollectionPersister, Jo
 	public EntityPersister getElementPersister() {
 		if (elementType instanceof EntityType ) {
 			return factory.getMetamodel()
-					.entityPersister(elementType.getName());
+					.getEntityDescriptor(elementType.getName());
 		}
 		else {
 			return null;

@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.sqm.sql;
 
@@ -226,6 +224,7 @@ import org.hibernate.query.sqm.tree.expression.SqmLiteralEmbeddableType;
 import org.hibernate.query.sqm.tree.expression.SqmLiteralEntityType;
 import org.hibernate.query.sqm.tree.expression.SqmLiteralNull;
 import org.hibernate.query.sqm.tree.expression.SqmModifiedSubQueryExpression;
+import org.hibernate.query.sqm.tree.expression.SqmNamedExpression;
 import org.hibernate.query.sqm.tree.expression.SqmNamedParameter;
 import org.hibernate.query.sqm.tree.expression.SqmOver;
 import org.hibernate.query.sqm.tree.expression.SqmOverflow;
@@ -316,6 +315,7 @@ import org.hibernate.sql.ast.tree.cte.CteTable;
 import org.hibernate.sql.ast.tree.cte.CteTableGroup;
 import org.hibernate.sql.ast.tree.cte.SearchClauseSpecification;
 import org.hibernate.sql.ast.tree.delete.DeleteStatement;
+import org.hibernate.sql.ast.tree.expression.AliasedExpression;
 import org.hibernate.sql.ast.tree.expression.Any;
 import org.hibernate.sql.ast.tree.expression.BinaryArithmeticExpression;
 import org.hibernate.sql.ast.tree.expression.CaseSearchedExpression;
@@ -404,7 +404,6 @@ import org.hibernate.sql.results.graph.Fetch;
 import org.hibernate.sql.results.graph.FetchParent;
 import org.hibernate.sql.results.graph.Fetchable;
 import org.hibernate.sql.results.graph.FetchableContainer;
-import org.hibernate.sql.results.graph.collection.internal.EagerCollectionFetch;
 import org.hibernate.sql.results.graph.entity.EntityResultGraphNode;
 import org.hibernate.sql.results.graph.instantiation.internal.DynamicInstantiation;
 import org.hibernate.sql.results.graph.internal.ImmutableFetchList;
@@ -3022,10 +3021,20 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 								parentType.getRootEntityDescriptor().getEntityName()
 						);
 					}
+					final EntityDiscriminatorMapping discriminator = parentType.getDiscriminatorMapping();
+					final String entityName;
+					if ( discriminator != null && discriminator.hasPhysicalColumn() && !parentType.getSubMappingTypes().isEmpty() ) {
+						// This is needed to preserve optimization for joined + discriminator inheritance
+						// see JoinedSubclassEntityPersister#getIdentifierMappingForJoin
+						entityName = parentType.getRootEntityDescriptor().getEntityName();
+					}
+					else {
+						entityName = parentType.getEntityName();
+					}
 					registerEntityNameUsage(
 							tableGroup,
 							EntityNameUse.EXPRESSION,
-							parentType.getEntityName()
+							entityName
 					);
 				}
 				else {
@@ -4131,12 +4140,11 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 			if ( inferredEntityMapping == null ) {
 				// When the inferred mapping is null, we try to resolve to the FK by default, which is fine because
 				// expansion to all target columns for select and group by clauses is handled in EntityValuedPathInterpretation
-				if ( entityValuedModelPart instanceof EntityAssociationMapping
-						&& isFkOptimizationAllowed( path, (EntityAssociationMapping) entityValuedModelPart ) ) {
+				if ( entityValuedModelPart instanceof EntityAssociationMapping associationMapping
+						&& isFkOptimizationAllowed( path, associationMapping ) ) {
 					// If the table group uses an association mapping that is not a one-to-many,
 					// we make use of the FK model part - unless the path is a non-optimizable join,
 					// for which we should always use the target's identifier to preserve semantics
-					final EntityAssociationMapping associationMapping = (EntityAssociationMapping) entityValuedModelPart;
 					final ModelPart targetPart = associationMapping.getForeignKeyDescriptor().getPart(
 							associationMapping.getSideNature()
 					);
@@ -6283,7 +6291,14 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 					final QueryParameterBinding<?> binding = domainParameterBindings.getBinding(
 							domainParameterXref.getQueryParameter( expression )
 					);
-					final Object bindValue = binding.getBindValue();
+					final Object bindValue;
+					if ( binding.isMultiValued() ) {
+						final Collection<?> bindValues = binding.getBindValues();
+						bindValue = !bindValues.isEmpty() ? bindValues.iterator().next() : null;
+					}
+					else {
+						bindValue = binding.getBindValue();
+					}
 					if ( bindValue != null ) {
 						if ( bindValue instanceof BigInteger ) {
 							int precision = bindValue.toString().length() - ( ( (BigInteger) bindValue ).signum() < 0 ? 1 : 0 );
@@ -6425,7 +6440,22 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 		functionImpliedResultTypeAccess = inferrableTypeAccessStack.getCurrent();
 		inferrableTypeAccessStack.push( () -> null );
 		try {
-			return sqmFunction.convertToSqlAst( this );
+			final Expression expression = sqmFunction.convertToSqlAst( this );
+			if ( sqmFunction.getFunctionDescriptor().isPredicate()
+					&& expression instanceof SelfRenderingExpression selfRenderingExpression) {
+				final BasicType<Boolean> booleanType = getBooleanType();
+				return new CaseSearchedExpression(
+						booleanType,
+						List.of(
+								new CaseSearchedExpression.WhenFragment(
+										new SelfRenderingPredicate( selfRenderingExpression ),
+										new QueryLiteral<>( true, booleanType )
+								)
+						),
+						new QueryLiteral<>( false, booleanType )
+				);
+			}
+			return expression;
 		}
 		finally {
 			inferrableTypeAccessStack.pop();
@@ -7410,13 +7440,7 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 				new ArrayList<>( predicate.getPredicates().size() ),
 				getBooleanType()
 		);
-		final Map<TableGroup, Map<String, EntityNameUse>> previousTableGroupEntityNameUses;
-		if ( tableGroupEntityNameUses.isEmpty() ) {
-			previousTableGroupEntityNameUses = null;
-		}
-		else {
-			previousTableGroupEntityNameUses = new IdentityHashMap<>( tableGroupEntityNameUses );
-		}
+		final Map<TableGroup, Map<String, EntityNameUse>> previousTableGroupEntityNameUses = new IdentityHashMap<>( tableGroupEntityNameUses );
 		Map<TableGroup, Map<String, EntityNameUse>>[] disjunctEntityNameUsesArray = null;
 		Map<TableGroup, Map<String, EntityNameUse>> entityNameUsesToPropagate = null;
 		List<TableGroup> treatedTableGroups = null;
@@ -7428,9 +7452,7 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 			if ( !tableGroupEntityNameUses.isEmpty() ) {
 				if ( disjunctEntityNameUsesArray == null ) {
 					disjunctEntityNameUsesArray = new Map[predicate.getPredicates().size()];
-					entityNameUsesToPropagate = previousTableGroupEntityNameUses == null
-						? new IdentityHashMap<>()
-						: new IdentityHashMap<>( previousTableGroupEntityNameUses );
+					entityNameUsesToPropagate = new IdentityHashMap<>( previousTableGroupEntityNameUses );
 				}
 				if ( i == 0 ) {
 					// Collect the table groups for which filters are registered
@@ -7468,7 +7490,9 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 				// If every disjunct contains a FILTER, we can merge the filters
 				// If every disjunct contains a TREAT, we can merge the treats
 				// Otherwise, we downgrade the entity name uses to expression uses
-				for ( Map.Entry<TableGroup, Map<String, EntityNameUse>> entry : tableGroupEntityNameUses.entrySet() ) {
+				final Iterator<Map.Entry<TableGroup, Map<String, EntityNameUse>>> iterator = tableGroupEntityNameUses.entrySet().iterator();
+				while ( iterator.hasNext() ) {
+					final Map.Entry<TableGroup, Map<String, EntityNameUse>> entry = iterator.next();
 					final TableGroup tableGroup = entry.getKey();
 					final Map<String, EntityNameUse> entityNameUses = entityNameUsesToPropagate.computeIfAbsent(
 							tableGroup,
@@ -7476,10 +7500,22 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 					);
 					final boolean downgradeTreatUses;
 					final boolean downgradeFilterUses;
-					if ( i == 0 ) {
-						// Never downgrade the treat uses of the first disjunct
+					if ( getFromClauseAccess().findTableGroup( tableGroup.getNavigablePath() ) == null ) {
+						// Always preserver name uses for table groups not found in the current from clause index
+						previousTableGroupEntityNameUses.put( tableGroup, entry.getValue() );
+						// Remove from the current junction context since no more processing is required
+						if ( treatedTableGroups != null ) {
+							treatedTableGroups.remove( tableGroup );
+						}
+						if ( filteredTableGroups != null ) {
+							filteredTableGroups.remove( tableGroup );
+						}
+						iterator.remove();
+						continue;
+					}
+					else if ( i == 0 ) {
+						// Never downgrade treat or filter uses of the first disjunct
 						downgradeTreatUses = false;
-						// Never downgrade the filter uses of the first disjunct
 						downgradeFilterUses = false;
 					}
 					else {
@@ -7566,9 +7602,7 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 			}
 		}
 		if ( disjunctEntityNameUsesArray == null ) {
-			if ( previousTableGroupEntityNameUses != null ) {
-				tableGroupEntityNameUses.putAll( previousTableGroupEntityNameUses );
-			}
+			tableGroupEntityNameUses.putAll( previousTableGroupEntityNameUses );
 			return disjunction;
 		}
 
@@ -7639,9 +7673,7 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 
 		// Restore the parent context entity name uses state
 		tableGroupEntityNameUses.clear();
-		if ( previousTableGroupEntityNameUses != null ) {
-			tableGroupEntityNameUses.putAll( previousTableGroupEntityNameUses );
-		}
+		tableGroupEntityNameUses.putAll( previousTableGroupEntityNameUses );
 		// Propagate the union of the entity name uses upwards
 		for ( Map.Entry<TableGroup, Map<String, EntityNameUse>> entry : entityNameUsesToPropagate.entrySet() ) {
 			final Map<String, EntityNameUse> entityNameUses = tableGroupEntityNameUses.putIfAbsent(
@@ -8204,14 +8236,27 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 		);
 	}
 
-	private JdbcMappingContainer getBooleanType() {
+	private BasicType<Boolean> getBooleanType() {
 		return getTypeConfiguration().getBasicTypeForJavaType( Boolean.class );
 	}
 
 	@Override
 	public Object visitBooleanExpressionPredicate(SqmBooleanExpressionPredicate predicate) {
 		inferrableTypeAccessStack.push( this::getBooleanType );
-		final Expression booleanExpression = (Expression) predicate.getBooleanExpression().accept( this );
+		final SqmExpression<Boolean> sqmExpression = predicate.getBooleanExpression();
+		final Expression booleanExpression = (Expression) sqmExpression.accept( this );
+		if ( booleanExpression instanceof CaseSearchedExpression caseExpr
+				&& sqmExpression instanceof SqmFunction<?> sqmFunction
+				&& sqmFunction.getFunctionDescriptor().isPredicate() ) {
+			// Functions that are rendered as predicates are always wrapped,
+			// so the following unwraps the predicate and returns it directly instead of wrapping once more
+			final Predicate sqlPredicate = caseExpr.getWhenFragments().get( 0 ).getPredicate();
+			if ( predicate.isNegated() ) {
+				return new NegatedPredicate( sqlPredicate );
+			}
+			return sqlPredicate;
+		}
+
 		inferrableTypeAccessStack.pop();
 		if ( booleanExpression instanceof SelfRenderingExpression ) {
 			final Predicate sqlPredicate = new SelfRenderingPredicate( (SelfRenderingExpression) booleanExpression );
@@ -8279,6 +8324,11 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 				(Expression) sqmExpression.getExpression().accept( this ),
 				sqmExpression.getNodeType()
 		);
+	}
+
+	@Override
+	public Object visitNamedExpression(SqmNamedExpression<?> expression) {
+		return new AliasedExpression( (Expression) expression.getExpression().accept( this ), expression.getName() );
 	}
 
 	@Override
@@ -8538,14 +8588,6 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 
 	@Override
 	public ImmutableFetchList visitFetches(FetchParent fetchParent) {
-		if ( fetchParent instanceof EagerCollectionFetch && currentQuerySpec().isRoot() ) {
-			final EagerCollectionFetch collectionFetch = (EagerCollectionFetch) fetchParent;
-			final PluralAttributeMapping pluralAttributeMapping = collectionFetch.getFetchedMapping();
-			final NavigablePath fetchablePath = collectionFetch.getNavigablePath();
-			final TableGroup tableGroup = getFromClauseIndex().getTableGroup( fetchablePath );
-			assert tableGroup.getModelPart() == pluralAttributeMapping;
-			applyOrdering( tableGroup, pluralAttributeMapping );
-		}
 		final FetchableContainer referencedMappingContainer = fetchParent.getReferencedMappingContainer();
 		final int keySize = referencedMappingContainer.getNumberOfKeyFetchables();
 		final int size = referencedMappingContainer.getNumberOfFetchables();
@@ -8632,11 +8674,14 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 		}
 	}
 
-	private void applyOrdering(TableGroup tableGroup, OrderByFragment orderByFragment) {
-		if ( orderByFragments == null ) {
-			orderByFragments = new ArrayList<>();
+	@Override
+	public void applyOrdering(TableGroup tableGroup, OrderByFragment orderByFragment) {
+		if ( currentQuerySpec().isRoot() ) {
+			if ( orderByFragments == null ) {
+				orderByFragments = new ArrayList<>();
+			}
+			orderByFragments.add( new AbstractMap.SimpleEntry<>( orderByFragment, tableGroup ) );
 		}
-		orderByFragments.add( new AbstractMap.SimpleEntry<>( orderByFragment, tableGroup ) );
 	}
 
 	@Override
@@ -8929,10 +8974,10 @@ public abstract class BaseSqmToSqlAstConverter<T extends Statement> extends Base
 	@Override
 	public boolean isRegisteringVisitedAssociationKeys() {
 		/*
-			 We need to avoid loops in case of eager self-referencing associations
+			We need to avoid loops in case of eager self-referencing associations
 
-			 	E.g.
-			 	@NamedEntityGraphs({
+				E.g.
+				@NamedEntityGraphs({
 				@NamedEntityGraph(
 						name = "User.overview",
 						attributeNodes = { @NamedAttributeNode("name") })

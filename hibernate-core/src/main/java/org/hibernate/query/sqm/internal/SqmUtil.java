@@ -1,8 +1,6 @@
 /*
- * Hibernate, Relational Persistence for Idiomatic Java
- *
- * License: GNU Lesser General Public License (LGPL), version 2.1 or later
- * See the lgpl.txt file in the root directory or http://www.gnu.org/licenses/lgpl-2.1.html
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * Copyright Red Hat Inc. and Hibernate Authors
  */
 package org.hibernate.query.sqm.internal;
 
@@ -248,7 +246,7 @@ public class SqmUtil {
 	 * or one that has an explicit on clause predicate.
 	 */
 	public static boolean isFkOptimizationAllowed(SqmPath<?> sqmPath, EntityAssociationMapping associationMapping) {
-		if ( sqmPath instanceof SqmJoin<?, ?> sqmJoin ) {
+		if ( associationMapping.isFkOptimizationAllowed() && sqmPath instanceof SqmJoin<?, ?> sqmJoin ) {
 			switch ( sqmJoin.getSqmJoinType() ) {
 				case LEFT:
 					if ( isFiltered( associationMapping ) ) {
@@ -829,9 +827,14 @@ public class SqmUtil {
 	}
 
 	public static boolean isSelectionAssignableToResultType(SqmSelection<?> selection, Class<?> expectedResultType) {
-		if ( expectedResultType == null
-				|| selection != null && selection.getSelectableNode() instanceof SqmParameter ) {
+		if ( expectedResultType == null ) {
 			return true;
+		}
+		else if ( selection != null && selection.getSelectableNode() instanceof SqmParameter<?> sqmParameter ) {
+			final Class<?> anticipatedClass = sqmParameter.getAnticipatedType() != null ?
+					sqmParameter.getAnticipatedType().getBindableJavaType() :
+					null;
+			return anticipatedClass != null && expectedResultType.isAssignableFrom( anticipatedClass );
 		}
 		else if ( selection == null
 				|| !isHqlTuple( selection ) && selection.getSelectableNode().isCompoundSelection() ) {
@@ -1094,7 +1097,10 @@ public class SqmUtil {
 		}
 
 		final JavaType<?> selectionExpressibleJavaType = selectionExpressible.getExpressibleJavaType();
-		assert selectionExpressibleJavaType != null;
+		if ( selectionExpressibleJavaType == null ) {
+			// nothing we can validate
+			return;
+		}
 
 		final Class<?> selectionExpressibleJavaTypeClass = selectionExpressibleJavaType.getJavaTypeClass();
 		if ( selectionExpressibleJavaTypeClass != Object.class ) {
@@ -1103,7 +1109,7 @@ public class SqmUtil {
 				return;
 			}
 
-			if ( selectionExpressibleJavaType instanceof PrimitiveJavaType<?> primitiveJavaType ) {
+			if ( selectionExpressibleJavaType instanceof final PrimitiveJavaType<?> primitiveJavaType ) {
 				if ( primitiveJavaType.getPrimitiveClass() == resultClass ) {
 					return;
 				}
